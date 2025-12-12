@@ -192,3 +192,63 @@ body.pin-locked nav{
   }
   .navbar .container{ gap: .5rem; }
 }
+
+/* Mobile nav pills: perfect centering */
+.navbar-nav .nav-link{
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.15;
+  padding: 10px 14px;      /* симметричные отступы */
+  min-height: 44px;        /* чтобы вертикальное центрирование было заметным */
+  border-radius: 999px;    /* если у тебя плашки как “пилюли” */
+}
+
+@media (max-width: 420px){
+  .navbar-nav .nav-link{
+    flex: 1 1 0;          /* чтобы пункты делили ширину поровну */
+    padding: 10px 10px;
+    min-height: 46px;     /* для двух строк (“Внесение расходов”) */
+  }
+}
+
+/* Expenses filters layout */
+.expenses-filters{
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+.expenses-selects{
+  display: flex;
+  gap: .5rem;
+}
+
+/* Desktop/tablet: select+select+button in one row */
+@media (min-width: 421px){
+  .expenses-selects{ flex-direction: row; }
+  #expensesShowBtn{ height: auto; }
+}
+
+/* Mobile: two selects stacked, button on the right spanning both */
+@media (max-width: 420px){
+  .expenses-filters{
+    align-items: stretch;     /* чтобы кнопка могла растянуться по высоте */
+  }
+
+  .expenses-selects{
+    flex: 1 1 auto;
+    flex-direction: column;   /* два селекта один под другим */
+  }
+
+  #expensesShowBtn{
+    align-self: stretch;      /* растянуть по высоте колонки селектов */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+    color: #fff;              /* белый текст (на всякий случай) */
+    font-weight: 600;
+  }
+}

@@ -31,17 +31,21 @@
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
     <h4 class="mb-0">Расходы</h4>
 
-    <form id="expensesFilters" class="d-flex gap-2 flex-wrap align-items-center">
-      <select id="expensesMonthSelect" class="form-select form-select-sm">
-        <option selected disabled>Месяц</option>
-      </select>
+    <form id="expensesFilters" class="expenses-filters">
+        <div class="expenses-selects">
+            <select id="expensesMonthSelect" class="form-select form-select-sm">
+                <option selected disabled>Месяц</option>
+            </select>
 
-      <select id="expensesSortSelect" class="form-select form-select-sm sort-select">
-        <option value="new" selected>Сначала новые</option>
-        <option value="old">Сначала старые</option>
-      </select>
+            <select id="expensesSortSelect" class="form-select form-select-sm sort-select">
+                <option value="new" selected>Сначала новые</option>
+                <option value="old">Сначала старые</option>
+            </select>
+        </div>
 
-      <button class="btn btn-outline-primary btn-sm px-2" type="submit">Показать</button>
+        <button id="expensesShowBtn" class="btn btn-primary rounded-4 px-3" type="submit">
+            Показать
+        </button>
     </form>
   </div>
 
