@@ -271,3 +271,25 @@ body.pin-locked nav{
     width: 100%;
   }
 }
+
+@media (max-width: 420px){
+  /* 1) селекты одинаковой ширины */
+  .expenses-selects{
+    width: 100%;
+  }
+  .expenses-selects .form-select{
+    width: 100%;
+  }
+
+  /* 2) делаем кнопку фиксированной ширины и центрируем ее в "правой колонке" */
+  .expenses-filters{
+    justify-content: space-between;  /* селекты слева, кнопка справа */
+  }
+
+  #expensesShowBtn{
+    width: 96px;           /* можно 92–110, под вкус */
+    margin-left: 12px;     /* отступ от селектов */
+    margin-right: 12px;    /* отступ от правого края */
+    justify-content: center;
+  }
+}
