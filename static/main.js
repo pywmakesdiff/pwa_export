@@ -689,7 +689,7 @@
     else label = "все время";
 
     if (totalTitleEl) {
-      totalTitleEl.textContent = `Потрачено за ${label} — ${totalSum.toFixed(2)} ₽`;
+      totalTitleEl.textContent = `Потрачено за ${label} — ${totalSum.toFixed(1)} ₽`;
     }
 
 
