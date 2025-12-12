@@ -356,6 +356,8 @@
 
     const canvas = document.getElementById("addMonthChart");
     if (!canvas) return;
+    if (typeof Chart === "undefined") return;
+
 
     const monthPurchases = purchasesForMonth(purchases, ym);
     const summary = groupSummaryForPurchases(monthPurchases);
