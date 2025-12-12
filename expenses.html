@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Сайт — финансы</title>
+
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#a2d1ff">
+  <link rel="apple-touch-icon" href="./static/icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <link href="./static/vendor/bootstrap.min.css" rel="stylesheet">
+  <link href="./static/styles.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-custom border-bottom">
+  <div class="container">
+    <a class="navbar-brand fw-semibold" href="./index.html">Сайт — финансы</a>
+    <div class="navbar-nav gap-2">
+      <a class="nav-link" href="./index.html">Внесение расходов</a>
+      <a class="nav-link active" href="./expenses.html">Расходы</a>
+      <a class="nav-link" href="./reports.html">Отчетность</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container my-4">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+    <h4 class="mb-0">Расходы</h4>
+
+    <form id="expensesFilters" class="d-flex gap-2">
+      <select id="expensesMonthSelect" class="form-select"></select>
+
+      <select id="expensesSortSelect" class="form-select sort-select">
+        <option value="new" selected>Сначала новые</option>
+        <option value="old">Сначала старые</option>
+      </select>
+
+      <button class="btn btn-outline-primary" type="submit">Показать</button>
+    </form>
+  </div>
+
+  <div id="expensesNoData" class="alert alert-info rounded-4 d-none">
+    Пока нет покупок. Добавьте первую во вкладке «Внесение расходов».
+  </div>
+
+  <div class="row g-4" id="expensesContent">
+    <div class="col-lg-7">
+      <div class="card shadow-sm rounded-4">
+        <div class="card-body p-4">
+          <div class="text-muted mb-2">
+            Покупки за <b id="expensesMonthTitle">—</b>
+          </div>
+
+          <div id="purchaseList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card shadow-sm rounded-4">
+        <div class="card-body p-4">
+          <h6 class="mb-2">Подсказка</h6>
+          <div class="text-muted">
+            На лицевой стороне — <b>название</b>, <b>дата</b> и <b>сумма</b>.
+            Нажмите на карточку — раскроются <b>категория</b> и <b>комментарий</b>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="./static/vendor/bootstrap.bundle.min.js"></script>
+<script src="./static/vendor/chart.umd.min.js"></script>
+<script src="./static/main.js"></script>
+
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow-sm border-0">
+      <div class="modal-body p-4">
+        <h5 class="mb-2">Удалить покупку?</h5>
+        <div class="text-muted">
+          <span id="deleteConfirmText">Запись будет удалена без возможности восстановления.</span>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Отмена</button>
+          <button type="button" class="btn btn-danger rounded-pill" id="deleteConfirmBtn">Удалить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js");
+  }
+</script>
+</body>
+</html>

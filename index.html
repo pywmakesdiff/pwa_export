@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Сайт — финансы</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#a2d1ff">
+  <link rel="apple-touch-icon" href="./static/icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <!-- Local vendor (offline) -->
+  <link href="./static/vendor/bootstrap.min.css" rel="stylesheet">
+  <link href="./static/styles.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-custom border-bottom">
+  <div class="container">
+    <a class="navbar-brand fw-semibold" href="./index.html">Сайт — финансы</a>
+
+    <div class="navbar-nav gap-2">
+      <a class="nav-link active" href="./index.html">Внесение расходов</a>
+      <a class="nav-link" href="./expenses.html">Расходы</a>
+      <a class="nav-link" href="./reports.html">Отчетность</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container my-4">
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card shadow-sm rounded-4">
+        <div class="card-body p-4">
+          <div id="addAlertHost"></div>
+
+          <h4 class="mb-3" id="addPageTitle">Внесение расходов</h4>
+
+          <form id="purchaseForm" class="vstack gap-3" autocomplete="off">
+            <input type="hidden" id="purchaseId" value="">
+            <input type="hidden" id="nextUrl" value="">
+
+            <div>
+              <label class="form-label">Название покупки</label>
+              <input id="titleInput" class="form-control" placeholder="Напр. Продукты" required>
+            </div>
+
+            <div>
+              <label class="form-label">Категория покупки</label>
+              <input id="categoryInput" class="form-control" placeholder="Напр. Еда" required>
+            </div>
+
+            <div>
+              <label class="form-label">Сумма покупки</label>
+              <input id="amountInput" class="form-control" placeholder="Напр. 499.90" required>
+            </div>
+
+            <div>
+              <label class="form-label">Комментарий</label>
+              <input id="commentInput" class="form-control" placeholder="Необязательно">
+            </div>
+
+            <div>
+              <label class="form-label">Дата покупки</label>
+              <input id="dateInput" type="date" class="form-control">
+              <div class="form-text">Если оставить пустым — подставится текущая дата.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button id="submitBtn" class="btn btn-primary btn-lg rounded-4" type="submit">Внести данные</button>
+              <button id="cancelEditBtn" class="btn btn-outline-secondary btn-lg rounded-4 d-none" type="button">Отмена</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow-sm rounded-4 chart-card">
+        <div class="card-body p-1 pt-2">
+          <h6 class="mb-2 text-center" id="addChartTitle">Расходы за —</h6>
+          <div class="chart-box-sm">
+            <canvas id="addMonthChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Vendor -->
+<script src="./static/vendor/bootstrap.bundle.min.js"></script>
+<script src="./static/vendor/chart.umd.min.js"></script>
+<script src="./static/main.js"></script>
+
+<!-- Delete modal (используется на expenses/reports, можно держать везде) -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow-sm border-0">
+      <div class="modal-body p-4">
+        <h5 class="mb-2">Удалить покупку?</h5>
+        <div class="text-muted">
+          <span id="deleteConfirmText">Запись будет удалена без возможности восстановления.</span>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Отмена</button>
+          <button type="button" class="btn btn-danger rounded-pill" id="deleteConfirmBtn">Удалить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SW register -->
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js");
+  }
+</script>
+</body>
+</html>
