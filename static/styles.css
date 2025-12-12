@@ -162,3 +162,33 @@ body.pin-locked nav{
   user-select: none;
   filter: blur(2px);
 }
+
+@media (max-width: 420px){
+  .reports-controls{
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+  .reports-controls .report-select{
+    flex: 1 1 48%;
+    min-width: 145px;
+    max-width: 48vw;
+  }
+}
+
+@media (max-width: 420px){
+  #expensesFilters{ gap: .5rem; }
+  #expensesMonthSelect{ flex: 1 1 48%; min-width: 145px; max-width: 48vw; }
+  #expensesSortSelect{  flex: 1 1 48%; min-width: 145px; max-width: 48vw; }
+  #expensesFilters button{ flex: 0 0 auto; }
+}
+
+@media (max-width: 420px){
+  .navbar-brand{ display:none !important; }
+  .navbar-nav{
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .navbar .container{ gap: .5rem; }
+}

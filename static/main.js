@@ -392,6 +392,14 @@
 
     await ensureState();
 
+    // Mobile: shorten sort labels
+    if (window.matchMedia("(max-width: 420px)").matches) {
+      const opts = sortSelect.querySelectorAll("option");
+      if (opts[0]) opts[0].textContent = "Новые";
+      if (opts[1]) opts[1].textContent = "Старые";
+    }
+
+
     const ym = pickAddChartMonth(state.purchases);
     renderAddChartFromPurchases(state.purchases, ym);
 

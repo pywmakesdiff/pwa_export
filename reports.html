@@ -14,10 +14,11 @@
   <link href="./static/styles.css" rel="stylesheet">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-custom border-bottom">
-  <div class="container">
-    <a class="navbar-brand fw-semibold" href="./index.html">Сайт — финансы</a>
-    <div class="navbar-nav gap-2">
+<nav class="navbar navbar-custom border-bottom">
+  <div class="container d-flex align-items-center">
+    <a class="navbar-brand fw-semibold d-none d-sm-inline" href="./index.html">Сайт — финансы</a>
+
+    <div class="navbar-nav gap-2 flex-row flex-nowrap ms-auto">
       <a class="nav-link" href="./index.html">Внесение расходов</a>
       <a class="nav-link" href="./expenses.html">Расходы</a>
       <a class="nav-link active" href="./reports.html">Отчетность</a>
@@ -29,15 +30,17 @@
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
     <h4 class="mb-0">Отчетность</h4>
 
-    <div class="d-flex gap-2 align-items-center reports-controls">
-      <select id="periodSelect" class="form-select w-auto report-select">
+    <div class="d-flex gap-2 align-items-center justify-content-end flex-wrap reports-controls">
+      <select id="periodSelect" class="form-select form-select-sm report-select">
         <option value="month" selected>За месяц</option>
         <option value="3m">За 3 месяца</option>
         <option value="year">За год</option>
         <option value="all">За все время</option>
       </select>
 
-      <select id="monthSelect" class="form-select w-auto report-select"></select>
+      <select id="monthSelect" class="form-select form-select-sm report-select">
+        <option selected disabled>Месяц</option>
+      </select>
     </div>
   </div>
 
