@@ -427,7 +427,7 @@
 
       titleEl.value = p.title || "";
       categoryEl.value = p.category || "";
-      amountEl.value = String(Number(p.amount || 0).toFixed(2));
+      amountEl.value = String(Number(p.amount || 0).toFixed(1));
       commentEl.value = p.comment || "";
       dateEl.value = p.purchased_at || "";
 
@@ -522,7 +522,7 @@
   // ---------- EXPENSES ----------
   function buildPurchaseCardHTML(p, nextUrl) {
     const faceDate = dateLabel(p.purchased_at);
-    const sum = Number(p.amount || 0).toFixed(2);
+    const sum = Number(p.amount || 0).toFixed(1);
 
     const editUrl = new URL("./index.html", location.href);
     editUrl.searchParams.set("edit", String(p.id));
@@ -703,7 +703,7 @@
           </button>
         </td>
         <td class="text-center">${row.count}</td>
-        <td class="text-end" style="padding-right:30px;">${row.sum.toFixed(2)}</td>
+        <td class="text-end" style="padding-right:30px;">${row.sum.toFixed(1)}</td>
       </tr>
     `).join("");
 
@@ -738,7 +738,7 @@
               </div>
             </div>
             <div class="badge rounded-pill report-item-badge align-self-center">
-              ${Number(p.amount).toFixed(2)}
+              ${Number(p.amount).toFixed(1)}
             </div>
           </div>
         </div>
@@ -754,7 +754,7 @@
           ${escapeHtml(cat)}
           <span class="text-muted small">(Количество покупок - ${items.length})</span>
         </div>
-        <div class="badge rounded-pill report-sum-badge">${sum.toFixed(2)}</div>
+        <div class="badge rounded-pill report-sum-badge">${sum.toFixed(1)}</div>
       </div>
     </button>
   </h2>
