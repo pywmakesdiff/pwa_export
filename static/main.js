@@ -678,6 +678,22 @@
     const summary = groupSummaryForPurchases(filtered);
     const details = detailsByCategory(filtered);
 
+    // --- Total spent title ---
+    const totalTitleEl = document.getElementById("reportsTotalTitle");
+    const totalSum = filtered.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+    let label = "";
+    if (period === "month") label = monthLabel(monthKey);
+    else if (period === "3m") label = "3 месяца";
+    else if (period === "year") label = "год";
+    else label = "все время";
+
+    if (totalTitleEl) {
+      totalTitleEl.textContent = `Суммарно потрачено за ${label} — ${totalSum.toFixed(2)} ₽`;
+    }
+
+
+
     summaryTbody.innerHTML = summary.map(row => `
       <tr>
         <td>
