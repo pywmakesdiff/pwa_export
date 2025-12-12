@@ -162,21 +162,23 @@ body.pin-locked nav{
   }
 }
 
-/* Reports controls sizing */
-.reports-controls .form-select{
-  width: auto;
-  max-width: 175px;
-}
+/* Reports (mobile): оба селекта одинаковые, по центру и шире */
 @media (max-width: 576px){
   .reports-controls{
     width: 100%;
-    justify-content: flex-start !important;
+    padding-left: 14px;
+    padding-right: 14px;
+    gap: 12px !important;
+    justify-content: space-between !important;
   }
-  .reports-controls .form-select{
-    max-width: 48vw;
-    min-width: 145px;
+
+  .reports-controls .report-select{
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
   }
 }
+
 
 /* ===== Expenses filters layout (clean version) ===== */
 .expenses-filters{
