@@ -1,5 +1,29 @@
 (function () {
-  
+  // ---------- helpers ----------
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function showRuntimeError(msg) {
+    const host = document.getElementById("addAlertHost");
+    if (host) {
+      host.innerHTML = `<div class="alert alert-danger rounded-4 mb-3">${escapeHtml(msg)}</div>`;
+    }
+  }
+
+  window.addEventListener("error", (e) => {
+    showRuntimeError("Ошибка JS: " + (e?.message || "unknown"));
+  });
+
+  window.addEventListener("unhandledrejection", (e) => {
+    showRuntimeError("Ошибка: " + String(e?.reason || "unknown"));
+  });
+
   // ========== PIN GATE ==========
   const PIN_STORAGE_KEY = "finance_pin_v1";
   const PIN_UNLOCKED_KEY = "finance_pin_unlocked";
@@ -108,17 +132,8 @@
       }, { once: true });
     });
   }
-  
-  
-    function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
 
+  // ---------- dates/labels ----------
   const MONTHS_NOM = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
   const MONTHS_GEN = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
 
@@ -167,7 +182,7 @@
     setTimeout(() => { hostEl.innerHTML = ""; }, 2500);
   }
 
-  // ---- IndexedDB ----
+  // ---------- IndexedDB ----------
   const DB_NAME = "finance_pwa_db";
   const DB_VERSION = 1;
   const STORE = "purchases";
@@ -253,7 +268,7 @@
     db.close();
   }
 
-  // ---- State ----
+  // ---------- state ----------
   const state = { purchases: null };
 
   async function reloadState() {
@@ -295,7 +310,7 @@
     return byCat;
   }
 
-  // ---- Delete modal ----
+  // ---------- delete modal ----------
   function initDeleteModal(onAfterDelete) {
     const modalEl = document.getElementById("deleteConfirmModal");
     const confirmBtn = document.getElementById("deleteConfirmBtn");
@@ -331,7 +346,7 @@
     });
   }
 
-  // ---- ADD PAGE ----
+  // ---------- ADD ----------
   let addChart = null;
 
   function pickAddChartMonth(purchases) {
@@ -356,6 +371,7 @@
 
     const canvas = document.getElementById("addMonthChart");
     if (!canvas) return;
+    if (typeof Chart === "undefined") return;
 
     const monthPurchases = purchasesForMonth(purchases, ym);
     const summary = groupSummaryForPurchases(monthPurchases);
@@ -391,14 +407,6 @@
     const cancelBtn = document.getElementById("cancelEditBtn");
 
     await ensureState();
-
-    // Mobile: shorten sort labels
-    if (window.matchMedia("(max-width: 420px)").matches) {
-      const opts = sortSelect.querySelectorAll("option");
-      if (opts[0]) opts[0].textContent = "Новые";
-      if (opts[1]) opts[1].textContent = "Старые";
-    }
-
 
     const ym = pickAddChartMonth(state.purchases);
     renderAddChartFromPurchases(state.purchases, ym);
@@ -472,32 +480,38 @@
       const month_key = monthKeyFromISO(purchased_at);
       const existingId = idEl?.value ? Number(idEl.value) : null;
 
-      if (existingId) {
-        const old = await getPurchase(existingId);
-        if (!old) {
-          showAlert(alertHost, "Не удалось сохранить: запись не найдена.", "danger");
-          return;
+      try {
+        if (existingId) {
+          const old = await getPurchase(existingId);
+          if (!old) {
+            showAlert(alertHost, "Не удалось сохранить: запись не найдена.", "danger");
+            return;
+          }
+          old.title = title;
+          old.category = category;
+          old.amount = amount;
+          old.comment = comment;
+          old.purchased_at = purchased_at;
+          old.month_key = month_key;
+
+          await updatePurchase(old);
+          await reloadState();
+
+          showAlert(alertHost, "Изменения сохранены.", "success");
+
+          const n = nextEl?.value || "";
+          if (n) { location.href = n; return; }
+          exitEditMode();
+        } else {
+          await addPurchase({ title, category, amount, comment, purchased_at, month_key });
+          await reloadState();
+          showAlert(alertHost, "Покупка добавлена.", "success");
+          form.reset();
         }
-        old.title = title;
-        old.category = category;
-        old.amount = amount;
-        old.comment = comment;
-        old.purchased_at = purchased_at;
-        old.month_key = month_key;
-
-        await updatePurchase(old);
-        await reloadState();
-
-        showAlert(alertHost, "Изменения сохранены.", "success");
-
-        const n = nextEl?.value || "";
-        if (n) { location.href = n; return; }
-        exitEditMode();
-      } else {
-        await addPurchase({ title, category, amount, comment, purchased_at, month_key });
-        await reloadState();
-        showAlert(alertHost, "Покупка добавлена.", "success");
-        form.reset();
+      } catch (err) {
+        console.error(err);
+        showAlert(alertHost, "Не удалось сохранить покупку (IndexedDB).", "danger");
+        return;
       }
 
       const newYm = pickAddChartMonth(state.purchases);
@@ -505,7 +519,7 @@
     });
   }
 
-  // ---- EXPENSES PAGE ----
+  // ---------- EXPENSES ----------
   function buildPurchaseCardHTML(p, nextUrl) {
     const faceDate = dateLabel(p.purchased_at);
     const sum = Number(p.amount || 0).toFixed(2);
@@ -558,6 +572,13 @@
     const contentEl = document.getElementById("expensesContent");
     const titleEl = document.getElementById("expensesMonthTitle");
     if (!monthSelect || !sortSelect || !form || !listEl || !noDataEl || !contentEl || !titleEl) return;
+
+    // ✅ вот тут место для мобильного сокращения текста (а НЕ в initAddPage)
+    if (window.matchMedia("(max-width: 576px)").matches) {
+      const opts = sortSelect.querySelectorAll("option");
+      if (opts[0]) opts[0].textContent = "Новые";
+      if (opts[1]) opts[1].textContent = "Старые";
+    }
 
     await ensureState();
 
@@ -617,7 +638,7 @@
     initDeleteModal(() => render());
   }
 
-  // ---- REPORTS PAGE ----
+  // ---------- REPORTS ----------
   let reportChart = null;
 
   function filterByPeriod(purchases, period, monthKey) {
@@ -729,10 +750,17 @@
 </div>`;
     }).join("");
 
+    // chart (не ломает страницу, если Chart не загрузился)
+    if (typeof Chart === "undefined") return;
+
     const labels = summary.map(x => x.category);
     const sums = summary.map(x => x.sum);
     if (reportChart) reportChart.destroy();
-    reportChart = new Chart(chartCanvas, { type: "bar", data: { labels, datasets: [{ label: "Сумма", data: sums }] }, options: { responsive: true } });
+    reportChart = new Chart(chartCanvas, {
+      type: "bar",
+      data: { labels, datasets: [{ label: "Сумма", data: sums }] },
+      options: { responsive: true }
+    });
   }
 
   async function initReportsPage() {
@@ -776,10 +804,17 @@
     initDeleteModal(() => render());
   }
 
-  document.addEventListener("DOMContentLoaded", async () => {
-    await initPinGate();
+  // ---------- boot ----------
+  async function boot() {
+    if (typeof initPinGate === "function") await initPinGate();
     await initAddPage();
     await initExpensesPage();
     await initReportsPage();
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();

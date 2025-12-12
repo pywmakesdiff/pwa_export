@@ -73,17 +73,10 @@ body{
   margin-right: auto;
 }
 
-
 /* 2) Расходы: ценник покупки */
 .price-badge{
   background: #648eff;
   color: #ffffff;
-}
-
-.report-item-badge{
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
 }
 
 /* 3) Отчетность: ценник суммы категории */
@@ -94,6 +87,9 @@ body{
 
 /* 3) Отчетность: ценник покупки внутри раскрытия */
 .report-item-badge{
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
   background: #6690ff;
   color: #ffffff;
 }
@@ -130,67 +126,11 @@ body.pin-locked #pinOverlay{
   display: flex;
 }
 
-/* Expenses filters mobile fit */
-#expensesFilters{
-  flex-wrap: nowrap;
-}
-#expensesMonthSelect{
-  min-width: 120px;
-  flex: 1 1 auto;
-}
-#expensesSortSelect{
-  flex: 0 0 auto;
-  width: 140px;
-}
-@media (max-width: 420px){
-  #expensesSortSelect{ width: 115px; }
-  #expensesMonthSelect{ min-width: 130px; }
-}
-
-.reports-controls .form-select{
-  width: auto;
-  max-width: 175px;
-}
-@media (max-width: 420px){
-  .reports-controls .form-select{ max-width: 150px; }
-}
-
-
 body.pin-locked #appContent,
 body.pin-locked nav{
   pointer-events: none;
   user-select: none;
   filter: blur(2px);
-}
-
-@media (max-width: 420px){
-  .reports-controls{
-    width: 100%;
-    justify-content: flex-start !important;
-  }
-  .reports-controls .report-select{
-    flex: 1 1 48%;
-    min-width: 145px;
-    max-width: 48vw;
-  }
-}
-
-@media (max-width: 420px){
-  #expensesFilters{ gap: .5rem; }
-  #expensesMonthSelect{ flex: 1 1 48%; min-width: 145px; max-width: 48vw; }
-  #expensesSortSelect{  flex: 1 1 48%; min-width: 145px; max-width: 48vw; }
-  #expensesFilters button{ flex: 0 0 auto; }
-}
-
-@media (max-width: 420px){
-  .navbar-brand{ display:none !important; }
-  .navbar-nav{
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    width: 100%;
-    justify-content: space-between;
-  }
-  .navbar .container{ gap: .5rem; }
 }
 
 /* Mobile nav pills: perfect centering */
@@ -200,20 +140,45 @@ body.pin-locked nav{
   justify-content: center;
   text-align: center;
   line-height: 1.15;
-  padding: 10px 14px;      /* симметричные отступы */
-  min-height: 44px;        /* чтобы вертикальное центрирование было заметным */
-  border-radius: 999px;    /* если у тебя плашки как “пилюли” */
+  padding: 10px 14px;
+  min-height: 44px;
+  border-radius: 999px;
 }
 
-@media (max-width: 420px){
+@media (max-width: 576px){
+  .navbar-brand{ display:none !important; }
+  .navbar-nav{
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .navbar .container{ gap: .5rem; }
+
   .navbar-nav .nav-link{
-    flex: 1 1 0;          /* чтобы пункты делили ширину поровну */
+    flex: 1 1 0;
     padding: 10px 10px;
-    min-height: 46px;     /* для двух строк (“Внесение расходов”) */
+    min-height: 46px;
   }
 }
 
-/* Expenses filters layout */
+/* Reports controls sizing */
+.reports-controls .form-select{
+  width: auto;
+  max-width: 175px;
+}
+@media (max-width: 576px){
+  .reports-controls{
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+  .reports-controls .form-select{
+    max-width: 48vw;
+    min-width: 145px;
+  }
+}
+
+/* ===== Expenses filters layout (clean version) ===== */
 .expenses-filters{
   display: flex;
   gap: .5rem;
@@ -225,71 +190,48 @@ body.pin-locked nav{
   gap: .5rem;
 }
 
-/* Desktop/tablet: select+select+button in one row */
-@media (min-width: 421px){
+/* Desktop/tablet */
+@media (min-width: 577px){
   .expenses-selects{ flex-direction: row; }
   #expensesShowBtn{ height: auto; }
 }
 
-/* Mobile: two selects stacked, button on the right spanning both */
-@media (max-width: 420px){
-  .expenses-filters{
-    align-items: stretch;     /* чтобы кнопка могла растянуться по высоте */
+/* iPhone/mobile: 2 selects stacked + button right, centered in free space */
+@media (max-width: 576px){
+  #expensesFilters.expenses-filters{
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    align-items: stretch !important;
+
+    /* "равноудаление" кнопки:
+       gap = расстояние слева от кнопки,
+       padding-right = расстояние справа от кнопки */
+    column-gap: 12px !important;
+    padding-right: 12px !important;
   }
 
-  .expenses-selects{
-    flex: 1 1 auto;
-    flex-direction: column;   /* два селекта один под другим */
+  #expensesFilters .expenses-selects{
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
-  #expensesShowBtn{
-    align-self: stretch;      /* растянуть по высоте колонки селектов */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 110px;
-    color: #fff;              /* белый текст (на всякий случай) */
-    font-weight: 600;
-  }
-}
-
-@media (max-width: 420px){
-  .expenses-filters{
-    width: 100%;
+  /* селекты одинаковой ширины */
+  #expensesFilters .expenses-selects .form-select{
+    width: 100% !important;
   }
 
-  .expenses-selects{
-    flex: 1 1 auto;
-  }
-
-  /* Селекты занимают максимум, кнопка фиксированная */
-  #expensesShowBtn{
-    min-width: 105px;
-  }
-
-  .expenses-selects .form-select{
-    width: 100%;
-  }
-}
-
-@media (max-width: 420px){
-  /* 1) селекты одинаковой ширины */
-  .expenses-selects{
-    width: 100%;
-  }
-  .expenses-selects .form-select{
-    width: 100%;
-  }
-
-  /* 2) делаем кнопку фиксированной ширины и центрируем ее в "правой колонке" */
-  .expenses-filters{
-    justify-content: space-between;  /* селекты слева, кнопка справа */
-  }
-
-  #expensesShowBtn{
-    width: 96px;           /* можно 92–110, под вкус */
-    margin-left: 12px;     /* отступ от селектов */
-    margin-right: 12px;    /* отступ от правого края */
-    justify-content: center;
+  /* кнопка как "Внести данные": заливка + белый текст, по высоте как 2 селекта */
+  #expensesFilters button[type="submit"]{
+    width: 96px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: stretch !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    border-radius: 1rem !important;
   }
 }
