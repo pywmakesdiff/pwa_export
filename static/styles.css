@@ -252,3 +252,22 @@ body.pin-locked nav{
     font-weight: 600;
   }
 }
+
+@media (max-width: 420px){
+  .expenses-filters{
+    width: 100%;
+  }
+
+  .expenses-selects{
+    flex: 1 1 auto;
+  }
+
+  /* Селекты занимают максимум, кнопка фиксированная */
+  #expensesShowBtn{
+    min-width: 105px;
+  }
+
+  .expenses-selects .form-select{
+    width: 100%;
+  }
+}
