@@ -130,6 +130,32 @@ body.pin-locked #pinOverlay{
   display: flex;
 }
 
+/* Expenses filters mobile fit */
+#expensesFilters{
+  flex-wrap: nowrap;
+}
+#expensesMonthSelect{
+  min-width: 120px;
+  flex: 1 1 auto;
+}
+#expensesSortSelect{
+  flex: 0 0 auto;
+  width: 140px;
+}
+@media (max-width: 420px){
+  #expensesSortSelect{ width: 115px; }
+  #expensesMonthSelect{ min-width: 130px; }
+}
+
+.reports-controls .form-select{
+  width: auto;
+  max-width: 175px;
+}
+@media (max-width: 420px){
+  .reports-controls .form-select{ max-width: 150px; }
+}
+
+
 body.pin-locked #appContent,
 body.pin-locked nav{
   pointer-events: none;

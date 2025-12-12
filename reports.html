@@ -25,11 +25,11 @@
   </div>
 </nav>
 
-<main class="container my-4">
+<main id="appContent" class="container my-4">
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
     <h4 class="mb-0">Отчетность</h4>
 
-    <div class="d-flex gap-2 align-items-center">
+    <div class="d-flex gap-2 align-items-center reports-controls">
       <select id="periodSelect" class="form-select w-auto report-select">
         <option value="month" selected>За месяц</option>
         <option value="3m">За 3 месяца</option>
@@ -113,5 +113,43 @@
     navigator.serviceWorker.register("./service-worker.js");
   }
 </script>
+
+
+<div id="pinOverlay" class="pin-overlay" aria-hidden="true">
+  <div class="pin-card card shadow-sm rounded-4 border-0">
+    <div class="card-body p-4">
+      <h4 id="pinTitle" class="mb-1">Введите PIN</h4>
+      <div id="pinSubtitle" class="text-muted mb-3">Для доступа к приложению</div>
+
+      <div id="pinError" class="text-danger small mb-2" style="display:none;"></div>
+
+      <form id="pinForm" class="vstack gap-2" autocomplete="off">
+        <input id="pinInput1"
+               class="form-control form-control-lg text-center"
+               inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               placeholder="PIN" />
+
+        <input id="pinInput2"
+               class="form-control form-control-lg text-center"
+               inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               placeholder="Повторите PIN"
+               style="display:none;" />
+
+        <button id="pinSubmitBtn" class="btn btn-primary btn-lg rounded-4 mt-2" type="submit">
+          Войти
+        </button>
+      </form>
+
+      <div class="text-muted small mt-3">
+        Если забудете PIN — очистите данные сайта в Safari.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
 </body>
 </html>

@@ -1,5 +1,116 @@
 (function () {
-  function escapeHtml(s) {
+  
+  // ========== PIN GATE ==========
+  const PIN_STORAGE_KEY = "finance_pin_v1";
+  const PIN_UNLOCKED_KEY = "finance_pin_unlocked";
+
+  function bufToHex(buffer) {
+    const bytes = new Uint8Array(buffer);
+    return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  function randomHex(bytesLen = 16) {
+    const bytes = new Uint8Array(bytesLen);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function sha256Hex(text) {
+    const enc = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest("SHA-256", enc);
+    return bufToHex(hash);
+  }
+  function getStoredPin() {
+    try {
+      const raw = localStorage.getItem(PIN_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null; // {salt, hash}
+    } catch { return null; }
+  }
+  function setStoredPin(obj) {
+    localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(obj));
+  }
+  function setUnlocked() {
+    sessionStorage.setItem(PIN_UNLOCKED_KEY, "1");
+    document.body.classList.remove("pin-locked");
+    const overlay = document.getElementById("pinOverlay");
+    if (overlay) overlay.setAttribute("aria-hidden", "true");
+  }
+  function isUnlockedSession() {
+    return sessionStorage.getItem(PIN_UNLOCKED_KEY) === "1";
+  }
+  function showPinError(msg) {
+    const el = document.getElementById("pinError");
+    if (!el) return;
+    el.style.display = "block";
+    el.textContent = msg;
+  }
+  function clearPinError() {
+    const el = document.getElementById("pinError");
+    if (!el) return;
+    el.style.display = "none";
+    el.textContent = "";
+  }
+
+  async function initPinGate() {
+    const overlay = document.getElementById("pinOverlay");
+    const form = document.getElementById("pinForm");
+    const pin1 = document.getElementById("pinInput1");
+    const pin2 = document.getElementById("pinInput2");
+    const title = document.getElementById("pinTitle");
+    const subtitle = document.getElementById("pinSubtitle");
+    const btn = document.getElementById("pinSubmitBtn");
+    if (!overlay || !form || !pin1 || !pin2 || !title || !subtitle || !btn) return;
+
+    const stored = getStoredPin();
+    if (stored && isUnlockedSession()) { setUnlocked(); return; }
+
+    document.body.classList.add("pin-locked");
+    overlay.setAttribute("aria-hidden", "false");
+
+    const isSetup = !stored;
+    if (isSetup) {
+      title.textContent = "Создайте PIN";
+      subtitle.textContent = "PIN хранится локально на устройстве";
+      btn.textContent = "Сохранить и войти";
+      pin2.style.display = "block";
+    } else {
+      title.textContent = "Введите PIN";
+      subtitle.textContent = "Для доступа к приложению";
+      btn.textContent = "Войти";
+      pin2.style.display = "none";
+    }
+
+    pin1.value = ""; pin2.value = "";
+    clearPinError();
+    pin1.focus();
+
+    return new Promise((resolve) => {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        clearPinError();
+
+        const v1 = (pin1.value || "").trim();
+        const v2 = (pin2.value || "").trim();
+
+        if (!/^\d{4,6}$/.test(v1)) { showPinError("PIN должен быть 4–6 цифр."); return; }
+
+        if (isSetup) {
+          if (v1 !== v2) { showPinError("PIN не совпадает. Повторите."); return; }
+          const salt = randomHex(16);
+          const hash = await sha256Hex(salt + v1);
+          setStoredPin({ salt, hash });
+          setUnlocked(); resolve(); return;
+        }
+
+        const cur = getStoredPin();
+        const hash = await sha256Hex(cur.salt + v1);
+        if (hash !== cur.hash) { showPinError("Неверный PIN."); pin1.value=""; pin1.focus(); return; }
+
+        setUnlocked(); resolve();
+      }, { once: true });
+    });
+  }
+  
+  
+    function escapeHtml(s) {
     return String(s)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -658,6 +769,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
+    await initPinGate();
     await initAddPage();
     await initExpensesPage();
     await initReportsPage();
