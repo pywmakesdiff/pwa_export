@@ -776,10 +776,17 @@
     initDeleteModal(() => render());
   }
 
-  document.addEventListener("DOMContentLoaded", async () => {
-    await initPinGate();
-    await initAddPage();
-    await initExpensesPage();
-    await initReportsPage();
-  });
+    async function boot() {
+        // если у тебя есть PIN gate — оставь, если нет, строка безопасна
+        if (typeof initPinGate === "function") await initPinGate();
+        await initAddPage();
+        await initExpensesPage();
+        await initReportsPage();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
 })();
