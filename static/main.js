@@ -297,6 +297,39 @@
   // ---------- state ----------
   const state = { purchases: null };
 
+  // ---------- user categories (manual) ----------
+  const USER_CATS_KEY = "finance_user_categories_v1";
+
+  function loadUserCategories() {
+    try {
+      const raw = localStorage.getItem(USER_CATS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+  function saveUserCategories(arr) {
+    localStorage.setItem(USER_CATS_KEY, JSON.stringify(arr));
+  }
+  function normCat(s) {
+    return String(s || "").trim().replace(/\s+/g, " ");
+  }
+  function addUserCategory(name) {
+    const v = normCat(name);
+    if (!v) return;
+    const cats = loadUserCategories();
+    if (cats.some(x => normCat(x).toLowerCase() === v.toLowerCase())) return;
+    cats.push(v);
+    cats.sort((a,b) => a.localeCompare(b, "ru"));
+    saveUserCategories(cats);
+  }
+  function deleteUserCategory(name) {
+    const v = normCat(name);
+    const cats = loadUserCategories().filter(x => normCat(x).toLowerCase() !== v.toLowerCase());
+    saveUserCategories(cats);
+  }
+
+
+
   async function reloadState() {
     state.purchases = await getAllPurchases();
     return state.purchases;
@@ -564,6 +597,20 @@
 
     await ensureState();
 
+    // categories from "Мои категории"
+    const categoryDatalist = document.getElementById("categoryDatalist");
+    function refreshUserCatsDatalist() {
+      if (!categoryDatalist) return;
+      const cats = loadUserCategories();
+      categoryDatalist.innerHTML = cats.map(v => `<option value="${escapeHtml(v)}"></option>`).join("");
+    }
+    refreshUserCatsDatalist();
+
+    // если вернулся со страницы категорий — обновим список
+    window.addEventListener("focus", refreshUserCatsDatalist);
+
+
+
     function ensureDefaultDate() {
       if (dateEl && !dateEl.value) dateEl.value = todayISO();
     }
@@ -820,7 +867,8 @@
       const currentYm = ymFromDate(new Date());
       const selectedMonth =
         qMonth && months.includes(qMonth) ? qMonth : months.includes(currentYm) ? currentYm : months[0];
-      const sortMode = qSort === "old" || qSort === "new" ? qSort : sortSelect.value || "new";
+      const sortMode = (qSort === "old" || qSort === "new" || qSort === "cat") ? qSort : (sortSelect.value || "new");
+
 
       monthSelect.innerHTML = months
         .map(
@@ -835,7 +883,13 @@
       items.sort((a, b) => {
         const da = a.purchased_at || "";
         const db = b.purchased_at || "";
-        return sortMode === "old" ? da.localeCompare(db) : db.localeCompare(da);
+        if (sortMode === "cat") {
+          const ca = String(a.category || "").localeCompare(String(b.category || ""), "ru");
+          if (ca !== 0) return ca;
+          // внутри категории — сначала новые
+          return db.localeCompare(da);
+        }
+        return (sortMode === "old") ? da.localeCompare(db) : db.localeCompare(da);
       });
 
       const nextUrl = `${location.pathname}?month=${encodeURIComponent(selectedMonth)}&sort=${encodeURIComponent(sortMode)}`;
@@ -1168,6 +1222,45 @@
     render(true);
   }
 
+  async function initCategoriesPage() {
+    const form = document.getElementById("myCatsForm");
+    const input = document.getElementById("myCatInput");
+    const list = document.getElementById("myCatsList");
+    if (!form || !input || !list) return;
+
+    function render() {
+      const cats = loadUserCategories();
+      if (!cats.length) {
+        list.innerHTML = `<div class="text-muted">Категорий пока нет. Добавьте вашу первую!</div>`;
+        return;
+      }
+      list.innerHTML = cats.map(c => `
+        <div class="d-flex justify-content-between align-items-center border rounded-4 p-3 mb-2">
+          <div class="fw-semibold">${escapeHtml(c)}</div>
+          <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-del-cat="${escapeHtml(c)}">Удалить</button>
+        </div>
+      `).join("");
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      addUserCategory(input.value);
+      input.value = "";
+      render();
+    });
+
+    list.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-del-cat]");
+      if (!btn) return;
+      deleteUserCategory(btn.getAttribute("data-del-cat"));
+      render();
+    });
+
+    render();
+  }
+
+
+
   // ---------- boot ----------
   async function boot() {
     if (typeof initPinGate === "function") await initPinGate();
@@ -1175,6 +1268,7 @@
     await initAddPage();
     await initExpensesPage();
     await initReportsPage();
+    await initCategoriesPage();
   }
 
   if (document.readyState === "loading") {
