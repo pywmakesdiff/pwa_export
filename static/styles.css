@@ -251,3 +251,16 @@ body.pin-locked nav{
   height: 240px !important;
   max-height: 240px !important;
 }
+
+/* Отчетность: перенос “(Количество покупок - X)” целиком на 2-ю строку */
+.report-cat-wrap{
+  display: flex;
+  flex-wrap: wrap;          /* если не влезает — переносим на следующую строку */
+  column-gap: .4rem;
+  row-gap: .1rem;
+  align-items: baseline;
+}
+
+.report-cat-count{
+  white-space: nowrap;      /* запрещаем разрывать фразу внутри */
+}

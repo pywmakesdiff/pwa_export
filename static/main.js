@@ -662,8 +662,8 @@
 
     if (window.matchMedia("(max-width: 576px)").matches) {
       const opts = sortSelect.querySelectorAll("option");
-      if (opts[0]) opts[0].textContent = "Новые";
-      if (opts[1]) opts[1].textContent = "Старые";
+      if (opts[0]) opts[0].textContent = "Сначала новые";
+      if (opts[1]) opts[1].textContent = "Сначала старые";
     }
 
     await ensureState();
@@ -862,9 +862,9 @@
     <button class="accordion-button collapsed" type="button"
             data-bs-toggle="collapse" data-bs-target="#col-${safe}">
       <div class="d-flex w-100 justify-content-between align-items-center gap-3">
-        <div>
-          ${escapeHtml(cat)}
-          <span class="text-muted small">(Количество покупок - ${items.length})</span>
+        <div class="report-cat-wrap">
+          <span class="report-cat-name">${escapeHtml(cat)}</span>
+          <span class="report-cat-count text-muted small">(Количество покупок - ${items.length})</span>
         </div>
         <div class="badge rounded-pill report-sum-badge">${sum.toFixed(2)}</div>
       </div>
