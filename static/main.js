@@ -158,34 +158,8 @@
   }
 
   // ---------- dates/labels ----------
-  const MONTHS_NOM = [
-    "Январь",
-    "Февраль",
-    "Март",
-    "Апрель",
-    "Май",
-    "Июнь",
-    "Июль",
-    "Август",
-    "Сентябрь",
-    "Октябрь",
-    "Ноябрь",
-    "Декабрь",
-  ];
-  const MONTHS_GEN = [
-    "Января",
-    "Февраля",
-    "Марта",
-    "Апреля",
-    "Мая",
-    "Июня",
-    "Июля",
-    "Августа",
-    "Сентября",
-    "Октября",
-    "Ноября",
-    "Декабря",
-  ];
+  const MONTHS_NOM = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+  const MONTHS_GEN = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
 
   function monthLabel(ym) {
     if (!ym || ym.length !== 7) return String(ym || "");
@@ -364,13 +338,57 @@
     return byCat;
   }
 
-  function formatMoney1(val) {
-    return Number(val || 0).toLocaleString("ru-RU", {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    });
+  // ---------- categories storage (NEW) ----------
+  const CATEGORIES_KEY = "finance_user_categories_v1";
+
+  function normalizeText(s) {
+    return String(s || "").trim().replace(/\s+/g, " ");
+  }
+  function catKey(s) {
+    return normalizeText(s).toLowerCase();
+  }
+  function loadCategoriesRaw() {
+    try {
+      const raw = localStorage.getItem(CATEGORIES_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.map(normalizeText).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+  function saveCategories(arr) {
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(arr));
+  }
+  function getCategories() {
+    const arr = loadCategoriesRaw();
+    const map = new Map();
+    for (const c of arr) {
+      const k = catKey(c);
+      if (!map.has(k)) map.set(k, c);
+    }
+    return Array.from(map.values()).sort((a, b) => String(a).localeCompare(String(b), "ru"));
+  }
+  function addCategory(name) {
+    const n = normalizeText(name);
+    if (!n) return false;
+    const list = getCategories();
+    const k = catKey(n);
+    if (list.some((x) => catKey(x) === k)) return false;
+    list.push(n);
+    list.sort((a, b) => String(a).localeCompare(String(b), "ru"));
+    saveCategories(list);
+    return true;
+  }
+  function removeCategory(name) {
+    const k = catKey(name);
+    const list = getCategories().filter((x) => catKey(x) !== k);
+    saveCategories(list);
   }
 
+  // ---------- money/title ----------
+  function formatMoney1(val) {
+    return Number(val || 0).toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
   function setReportsTitle(label, sum) {
     const el = document.getElementById("reportsTotalTitle");
     if (!el) return;
@@ -412,6 +430,63 @@
       if (onAfterDelete) onAfterDelete();
       deleteId = null;
     });
+  }
+
+  // ---------- CATEGORIES PAGE (NEW) ----------
+  function initCategoriesPage() {
+    const form = document.getElementById("categoriesForm");
+    const input = document.getElementById("newCategoryInput");
+    const listEl = document.getElementById("categoriesList");
+    const emptyEl = document.getElementById("categoriesEmpty");
+    const alertHost = document.getElementById("categoriesAlertHost");
+    if (!input || !listEl) return;
+
+    function flash(msg, type = "success") {
+      if (!alertHost) return;
+      alertHost.innerHTML = `<div class="alert alert-${type} rounded-4 mb-3">${escapeHtml(msg)}</div>`;
+      setTimeout(() => { alertHost.innerHTML = ""; }, 2000);
+    }
+
+    function render() {
+      const cats = getCategories();
+      if (emptyEl) emptyEl.style.display = cats.length ? "none" : "block";
+
+      listEl.innerHTML = cats.map((c) => `
+        <div class="d-flex align-items-center justify-content-between border rounded-4 px-3 py-2 mb-2" style="background: rgba(255,255,255,.45);">
+          <div class="fw-semibold">${escapeHtml(c)}</div>
+          <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-del-cat="${escapeHtml(c)}">
+            Удалить
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function doAdd() {
+      const name = normalizeText(input.value);
+      if (!name) { flash("Введите категорию.", "danger"); return; }
+      if (!addCategory(name)) { flash("Такая категория уже есть.", "danger"); return; }
+      input.value = "";
+      render();
+      flash("Категория добавлена.", "success");
+    }
+
+    if (form) {
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        doAdd();
+      });
+    }
+
+    listEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-del-cat]");
+      if (!btn) return;
+      const cat = btn.getAttribute("data-del-cat") || "";
+      removeCategory(cat);
+      render();
+      flash("Категория удалена.", "success");
+    });
+
+    render();
   }
 
   // ---------- ADD ----------
@@ -503,26 +578,29 @@
       dl.innerHTML = values.map((v) => `<option value="${escapeHtml(v)}"></option>`).join("");
     }
 
-    // ✅ НОВОЕ: показываем ВСЕ категории/источники, которые уже были в выбранном месяце
-    function updateMonthSuggestions() {
+    // ✅ категории — ТОЛЬКО из "Мои категории"
+    function fillCategoriesFromStore() {
+      fillDatalist(categoryListEl, getCategories());
+    }
+
+    // ✅ источники — как раньше: из покупок выбранного месяца
+    function updateMonthSources() {
+      if (!sourceListEl) return;
       ensureDefaultDate();
       const picked = (dateEl.value || "").trim() || todayISO();
       const ym = monthKeyFromISO(picked);
-
       const monthItems = (state.purchases || []).filter((p) => p.month_key === ym);
-
-      const cats = uniqueSorted(monthItems.map((p) => p.category));
       const srcs = uniqueSorted(monthItems.map((p) => p.source));
-
-      fillDatalist(categoryListEl, cats);
       fillDatalist(sourceListEl, srcs);
     }
 
     ensureDefaultDate();
-    updateMonthSuggestions();
+    fillCategoriesFromStore();
+    updateMonthSources();
 
-    // при смене даты — пересчитываем подсказки
-    dateEl.addEventListener("change", updateMonthSuggestions);
+    dateEl.addEventListener("change", () => {
+      updateMonthSources();
+    });
 
     // chart
     const ym = pickAddChartMonth(state.purchases);
@@ -549,7 +627,8 @@
       if (commentEl) commentEl.value = p.comment || "";
       dateEl.value = p.purchased_at || todayISO();
 
-      updateMonthSuggestions();
+      fillCategoriesFromStore();
+      updateMonthSources();
 
       if (submitBtn) submitBtn.textContent = "Внести изменения";
       if (cancelBtn) cancelBtn.classList.remove("d-none");
@@ -559,8 +638,10 @@
       if (pageTitle) pageTitle.textContent = "Внесение расходов";
       if (idEl) idEl.value = "";
       form.reset();
+
       ensureDefaultDate();
-      updateMonthSuggestions();
+      fillCategoriesFromStore();
+      updateMonthSources();
 
       if (submitBtn) submitBtn.textContent = "Внести данные";
       if (cancelBtn) cancelBtn.classList.add("d-none");
@@ -605,6 +686,9 @@
       const existingId = idEl?.value ? Number(idEl.value) : null;
 
       try {
+        // ✅ если пользователь ввел новую категорию руками — добавим её в "Мои категории"
+        addCategory(category);
+
         if (existingId) {
           const old = await getPurchase(existingId);
           if (!old) {
@@ -623,13 +707,11 @@
           await reloadState();
           showAlert(alertHost, "Изменения сохранены.", "success");
 
-          updateMonthSuggestions();
+          fillCategoriesFromStore();
+          updateMonthSources();
 
           const n = nextEl?.value || "";
-          if (n) {
-            location.href = n;
-            return;
-          }
+          if (n) { location.href = n; return; }
           exitEditMode();
         } else {
           await addPurchase({ title, category, source, amount, comment, purchased_at, month_key });
@@ -638,7 +720,9 @@
 
           form.reset();
           ensureDefaultDate();
-          updateMonthSuggestions();
+
+          fillCategoriesFromStore();
+          updateMonthSources();
         }
       } catch (err) {
         console.error(err);
@@ -656,7 +740,6 @@
     const faceDate = dateLabel(p.purchased_at);
     const sum = Number(p.amount || 0).toFixed(2);
 
-    // уникальный id, чтобы точно не было конфликтов
     const collapseId = `p_${String(p.id)}_${String(p.purchased_at || "").replace(/[^0-9]/g, "")}`;
 
     const editUrl = new URL("./index.html", location.href);
@@ -741,9 +824,7 @@
 
       monthSelect.innerHTML = months
         .map(
-          (m) => `
-        <option value="${m}" ${m === selectedMonth ? "selected" : ""}>${escapeHtml(monthLabel(m))}</option>
-      `
+          (m) => `<option value="${m}" ${m === selectedMonth ? "selected" : ""}>${escapeHtml(monthLabel(m))}</option>`
         )
         .join("");
 
@@ -757,9 +838,7 @@
         return sortMode === "old" ? da.localeCompare(db) : db.localeCompare(da);
       });
 
-      const nextUrl = `${location.pathname}?month=${encodeURIComponent(selectedMonth)}&sort=${encodeURIComponent(
-        sortMode
-      )}`;
+      const nextUrl = `${location.pathname}?month=${encodeURIComponent(selectedMonth)}&sort=${encodeURIComponent(sortMode)}`;
       listEl.innerHTML = items.map((p) => buildPurchaseCardHTML(p, nextUrl)).join("");
     }
 
@@ -778,8 +857,8 @@
 
   // ---------- REPORTS ----------
   let reportChart = null;
-  let reportChartMode = "bar"; // bar <-> doughnut
-  let reportHiddenCats = new Set(); // скрытые категории (по названию)
+  let reportChartMode = "bar";
+  let reportHiddenCats = new Set();
 
   function filterByPeriod(purchases, period, monthKey) {
     const today = new Date();
@@ -791,9 +870,7 @@
     }
 
     let start = period === "3m" ? addMonths(today, -3) : addMonths(today, -12);
-    const startISO = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(
-      start.getDate()
-    ).padStart(2, "0")}`;
+    const startISO = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
     const endISO = todayISO();
     return purchases.filter((p) => p.purchased_at >= startISO && p.purchased_at <= endISO);
   }
@@ -821,17 +898,8 @@
   }
 
   const REPORT_COLORS = [
-    "#36a2eb",
-    "#ff6384",
-    "#ff9f40",
-    "#ffcd56",
-    "#4bc0c0",
-    "#9966ff",
-    "#c9cbcf",
-    "#4dc9f6",
-    "#00ad07",
-    "#ff11e0",
-    "#a5ffcd",
+    "#36a2eb", "#ff6384", "#ff9f40", "#ffcd56",
+    "#4bc0c0", "#9966ff", "#c9cbcf", "#4dc9f6", "#00ad07", "#ff11e0", "#a5ffcd"
   ];
 
   function renderReportsUI(purchases, period, monthKey) {
@@ -865,15 +933,10 @@
     else label = "все время";
 
     const totalAll = summary.reduce((a, r) => a + Number(r.sum || 0), 0);
-    const totalVisibleBySet = summary.reduce(
-      (a, r) => a + (reportHiddenCats.has(r.category) ? 0 : Number(r.sum || 0)),
-      0
-    );
+    const totalVisibleBySet = summary.reduce((a, r) => a + (reportHiddenCats.has(r.category) ? 0 : Number(r.sum || 0)), 0);
     setReportsTitle(label, reportHiddenCats.size ? totalVisibleBySet : totalAll);
 
-    summaryTbody.innerHTML = summary
-      .map(
-        (row) => `
+    summaryTbody.innerHTML = summary.map(row => `
       <tr>
         <td>
           <button class="btn btn-link p-0 text-decoration-none fw-semibold summary-cat-link"
@@ -884,11 +947,9 @@
         <td class="text-center">${row.count}</td>
         <td class="text-end" style="padding-right:30px;">${row.sum.toFixed(2)}</td>
       </tr>
-    `
-      )
-      .join("");
+    `).join("");
 
-    summaryTbody.querySelectorAll("[data-open-cat]").forEach((btn) => {
+    summaryTbody.querySelectorAll("[data-open-cat]").forEach(btn => {
       btn.addEventListener("click", () => {
         const cat = btn.getAttribute("data-open-cat");
         const safe = String(cat).replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -903,15 +964,12 @@
     for (const s of summary) sumByCat[s.category] = s.sum;
 
     const cats = Object.keys(details);
-    detailsAccordion.innerHTML = cats
-      .map((cat) => {
-        const safe = String(cat).replace(/[^a-zA-Z0-9_-]/g, "_");
-        const items = details[cat] || [];
-        const sum = Number(sumByCat[cat] ?? 0);
+    detailsAccordion.innerHTML = cats.map((cat) => {
+      const safe = String(cat).replace(/[^a-zA-Z0-9_-]/g, "_");
+      const items = details[cat] || [];
+      const sum = Number(sumByCat[cat] ?? 0);
 
-        const itemHtml = items
-          .map(
-            (p) => `
+      const itemHtml = items.map(p => `
         <div class="border rounded-4 p-3 mb-2">
           <div class="d-flex justify-content-between align-items-center gap-3">
             <div class="flex-grow-1">
@@ -927,11 +985,9 @@
             </div>
           </div>
         </div>
-      `
-          )
-          .join("");
+      `).join("");
 
-        return `
+      return `
 <div class="accordion-item rounded-4 overflow-hidden mb-2" id="acc-${safe}">
   <h2 class="accordion-header">
     <button class="accordion-button collapsed" type="button"
@@ -951,23 +1007,20 @@
     </div>
   </div>
 </div>`;
-      })
-      .join("");
+    }).join("");
 
     if (typeof Chart === "undefined") return;
 
-    const labels = summary.map((x) => x.category);
-    const sums = summary.map((x) => x.sum);
-    const counts = summary.map((x) => x.count);
+    const labels = summary.map(x => x.category);
+    const sums = summary.map(x => x.sum);
+    const counts = summary.map(x => x.count);
     const colors = labels.map((_, i) => REPORT_COLORS[i % REPORT_COLORS.length]);
 
     if (reportChart) reportChart.destroy();
 
     function updateTitleFromChart(chart) {
       const visibleSum = visibleSumFromChart(chart);
-      if (totalTitleEl) {
-        totalTitleEl.textContent = `Потрачено за ${label}: ${formatMoney1(visibleSum)} ₽`;
-      }
+      if (totalTitleEl) totalTitleEl.textContent = `Потрачено за ${label}: ${formatMoney1(visibleSum)} ₽`;
     }
 
     const tooltipCfg = {
@@ -975,20 +1028,17 @@
         afterLabel: (ctx) => {
           const i = ctx.dataIndex;
           return `Количество покупок: ${counts[i] ?? ""}`;
-        },
-      },
+        }
+      }
     };
 
     if (reportChartMode === "doughnut") {
       reportChart = new Chart(chartCanvas, {
         type: "doughnut",
-        data: {
-          labels,
-          datasets: [{ label: "Сумма", data: sums, backgroundColor: colors }],
-        },
+        data: { labels, datasets: [{ label: "Сумма", data: sums, backgroundColor: colors }] },
         options: {
           responsive: true,
-          maintainAspectRatio: true, // iOS fix
+          maintainAspectRatio: true,
           plugins: {
             legend: {
               display: true,
@@ -1000,11 +1050,11 @@
                 chart.update();
                 syncHiddenCatsFromChart(chart);
                 setReportsTitle(label, visibleSumFromChart(chart));
-              },
+              }
             },
-            tooltip: tooltipCfg,
-          },
-        },
+            tooltip: tooltipCfg
+          }
+        }
       });
 
       applyHiddenCatsToChart(reportChart);
@@ -1013,15 +1063,10 @@
     } else {
       reportChart = new Chart(chartCanvas, {
         type: "bar",
-        data: {
-          labels,
-          datasets: [{ label: "Сумма", data: sums, backgroundColor: colors }],
-        },
+        data: { labels, datasets: [{ label: "Сумма", data: sums, backgroundColor: colors }] },
         options: {
           responsive: true,
-          scales: {
-            x: { ticks: { display: false } }, // скрываем подписи категорий под столбиками
-          },
+          scales: { x: { ticks: { display: false } } },
           plugins: {
             legend: {
               display: true,
@@ -1039,10 +1084,10 @@
                       strokeStyle: style.borderColor,
                       lineWidth: style.borderWidth,
                       hidden: !chart.getDataVisibility(i),
-                      index: i,
+                      index: i
                     };
                   });
-                },
+                }
               },
               onClick: (e, item, legend) => {
                 const chart = legend.chart;
@@ -1051,9 +1096,9 @@
                 chart.update();
                 syncHiddenCatsFromChart(chart);
                 setReportsTitle(label, visibleSumFromChart(chart));
-              },
+              }
             },
-            tooltip: tooltipCfg,
+            tooltip: tooltipCfg
           },
           onClick: (evt, elements, chart) => {
             const points = chart.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
@@ -1063,8 +1108,8 @@
             chart.update();
             syncHiddenCatsFromChart(chart);
             setReportsTitle(label, visibleSumFromChart(chart));
-          },
-        },
+          }
+        }
       });
 
       applyHiddenCatsToChart(reportChart);
@@ -1083,13 +1128,13 @@
     await ensureState();
 
     function fillMonths(months, selected) {
-      monthSelect.innerHTML = months
-        .map((m) => `<option value="${m}" ${m === selected ? "selected" : ""}>${escapeHtml(monthLabel(m))}</option>`)
-        .join("");
+      monthSelect.innerHTML = months.map(m => `
+        <option value="${m}" ${m === selected ? "selected" : ""}>${escapeHtml(monthLabel(m))}</option>
+      `).join("");
     }
 
     function setMonthSelectVisible() {
-      monthSelect.style.display = periodSelect.value === "month" ? "block" : "none";
+      monthSelect.style.display = (periodSelect.value === "month") ? "block" : "none";
     }
 
     function render(resetHidden = true) {
@@ -1097,14 +1142,14 @@
       const months = getAvailableMonthsFromPurchases(purchases);
 
       const currentYm = ymFromDate(new Date());
-      const selectedMonth = months.includes(currentYm) ? currentYm : months[0] || currentYm;
+      const selectedMonth = (months.includes(currentYm) ? currentYm : (months[0] || currentYm));
 
       if (!monthSelect.value || !months.includes(monthSelect.value)) fillMonths(months, selectedMonth);
       else fillMonths(months, monthSelect.value);
 
       setMonthSelectVisible();
 
-      if (resetHidden) reportHiddenCats = new Set(); // при смене периода/месяца показываем всё
+      if (resetHidden) reportHiddenCats = new Set();
 
       const period = periodSelect.value || "month";
       renderReportsUI(purchases, period, monthSelect.value);
@@ -1112,8 +1157,8 @@
 
     if (toggleBtn) {
       toggleBtn.addEventListener("click", () => {
-        reportChartMode = reportChartMode === "bar" ? "doughnut" : "bar";
-        render(false); // сохраняем скрытые категории при смене вида
+        reportChartMode = (reportChartMode === "bar") ? "doughnut" : "bar";
+        render(false);
       });
     }
 
@@ -1126,6 +1171,7 @@
   // ---------- boot ----------
   async function boot() {
     if (typeof initPinGate === "function") await initPinGate();
+    initCategoriesPage();        // NEW
     await initAddPage();
     await initExpensesPage();
     await initReportsPage();

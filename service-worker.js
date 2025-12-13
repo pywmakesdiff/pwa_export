@@ -1,4 +1,4 @@
-const VERSION = "v25";
+const VERSION = "v26";
 const CACHE = `finance-pwa-${VERSION}`;
 
 const SCOPE = self.registration.scope;

@@ -264,3 +264,15 @@ body.pin-locked nav{
 .report-cat-count{
   white-space: nowrap;      /* запрещаем разрывать фразу внутри */
 }
+
+.my-categories-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-top: .6rem;
+  margin-bottom: .6rem; /* чтобы не прилипала к блоку покупок */
+}
+@media (max-width: 420px){
+  .my-categories-btn{ width: 100%; }
+}
