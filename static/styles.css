@@ -245,3 +245,9 @@ body.pin-locked nav{
   margin: 10px auto 0;     /* центрируем */
   padding: 8px 14px;
 }
+
+/* FIX: чтобы doughnut в "Отчетности" не растягивался бесконечно на iOS */
+#reportChart{
+  height: 240px !important;
+  max-height: 240px !important;
+}

@@ -348,6 +348,14 @@
     return Number(val || 0).toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   }
 
+  function setReportsTitle(label, sum){
+    const el = document.getElementById("reportsTotalTitle");
+    if (!el) return;
+    const prefix = label ? `Потрачено за ${label}: ` : "Потрачено: ";
+    el.textContent = `${prefix}${formatMoney1(sum)} ₽`;
+  }
+
+
   // ---------- delete modal ----------
   function initDeleteModal(onAfterDelete) {
     const modalEl = document.getElementById("deleteConfirmModal");
@@ -790,6 +798,13 @@
     else if (period === "year") label = "год";
     else label = "все время";
 
+    const totalAll = summary.reduce((a, r) => a + Number(r.sum || 0), 0);
+    const totalVisibleBySet = summary.reduce((a, r) => a + (reportHiddenCats.has(r.category) ? 0 : Number(r.sum || 0)), 0);
+
+    // ставим заголовок сразу (чтобы не было 0,0 ₽ при первом открытии)
+    setReportsTitle(label, reportHiddenCats.size ? totalVisibleBySet : totalAll);
+
+
     summaryTbody.innerHTML = summary.map(row => `
       <tr>
         <td>
@@ -894,7 +909,7 @@
         data: { labels, datasets: [{ label: "Сумма", data: sums }] },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: true, // FIX iOS "улёт вниз"
           plugins: {
             legend: {
               display: true,
@@ -906,7 +921,7 @@
                 chart.update();
 
                 syncHiddenCatsFromChart(chart);
-                updateTitleFromChart(chart);
+                setReportsTitle(label, visibleSumFromChart(chart)); // пересчёт суммы
               }
             },
             tooltip: tooltipCfg
@@ -914,11 +929,9 @@
         }
       });
 
-      // применяем скрытые категории после смены вида
       applyHiddenCatsToChart(reportChart);
       reportChart.update();
-      updateTitleFromChart(reportChart);
-
+      setReportsTitle(label, visibleSumFromChart(reportChart)); // пересчёт суммы при первом рендере
     } else {
       // BAR: делаем легенду как список категорий и клики по ней скрывают/показывают столбцы
       reportChart = new Chart(chartCanvas, {
@@ -955,7 +968,7 @@
                 chart.update();
 
                 syncHiddenCatsFromChart(chart);
-                updateTitleFromChart(chart);
+                setReportsTitle(label, visibleSumFromChart(chart));
               }
             },
             tooltip: tooltipCfg
@@ -969,7 +982,7 @@
             chart.update();
 
             syncHiddenCatsFromChart(chart);
-            updateTitleFromChart(chart);
+            setReportsTitle(label, visibleSumFromChart(chart));
           }
         }
       });
