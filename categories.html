@@ -5,50 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Мои категории</title>
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#a2d1ff">
+  <link rel="apple-touch-icon" href="./static/icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <link href="./static/vendor/bootstrap.min.css" rel="stylesheet">
   <link href="./static/styles.css" rel="stylesheet">
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg navbar-custom border-bottom">
-    <div class="container">
-      <a class="navbar-brand fw-semibold" href="./index.html">Сайт — финансы</a>
+<nav class="navbar navbar-custom border-bottom">
+  <div class="container d-flex align-items-center">
+    <a class="navbar-brand fw-semibold d-none d-sm-inline" href="./index.html">Сайт — финансы</a>
 
-      <div class="navbar-nav gap-2">
-        <a class="nav-link" href="./index.html">Внесение расходов</a>
-        <a class="nav-link active" href="./expenses.html">Расходы</a>
-        <a class="nav-link" href="./reports.html">Отчетность</a>
-      </div>
+    <div class="navbar-nav gap-2 flex-row flex-nowrap ms-auto">
+      <a class="nav-link" href="./index.html">Внесение расходов</a>
+      <a class="nav-link active" href="./expenses.html">Расходы</a>
+      <a class="nav-link" href="./reports.html">Отчетность</a>
     </div>
-  </nav>
+  </div>
+</nav>
 
-  <main class="container my-4">
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-        <div class="card shadow-sm rounded-4">
-          <div class="card-body p-4">
-            <h4 class="mb-3">Мои категории</h4>
+<main id="appContent" class="container my-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm rounded-4">
+        <div class="card-body p-4">
+          <h4 class="mb-3">Мои категории</h4>
 
-            <form id="myCatsForm" class="d-flex gap-2 align-items-center">
-              <input id="myCatInput"
+          <div id="categoriesAlertHost"></div>
+
+          <form id="categoriesForm" class="row g-2 align-items-center">
+            <div class="col">
+              <input id="newCategoryInput"
                      class="form-control rounded-4"
                      type="text"
                      placeholder="Новая категория"
-                     autocomplete="off">
-
-              <button class="btn btn-primary rounded-4" type="submit">
+                     autocomplete="off" />
+            </div>
+            <div class="col-auto">
+              <button id="addCategoryBtn"
+                      class="btn btn-primary rounded-pill px-3"
+                      type="submit">
                 Добавить
               </button>
-            </form>
+            </div>
+          </form>
 
-            <div id="myCatsList" class="mt-3"></div>
+          <div class="mt-3">
+            <div id="categoriesEmpty" class="text-muted">
+              Категорий пока нет. Добавьте вашу первую!
+            </div>
+            <div id="categoriesList" class="mt-2"></div>
           </div>
+
         </div>
       </div>
     </div>
-  </main>
+  </div>
+</main>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="./static/main.js"></script>
+<script src="./static/vendor/bootstrap.bundle.min.js"></script>
+<script src="./static/main.js"></script>
+
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow-sm border-0">
+      <div class="modal-body p-4">
+        <h5 class="mb-2">Удалить?</h5>
+        <div class="text-muted">
+          <span id="deleteConfirmText">Запись будет удалена без возможности восстановления.</span>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Отмена</button>
+          <button type="button" class="btn btn-danger rounded-pill" id="deleteConfirmBtn">Удалить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js");
+  }
+</script>
+
+<div id="pinOverlay" class="pin-overlay" aria-hidden="true">
+  <div class="pin-card card shadow-sm rounded-4 border-0">
+    <div class="card-body p-4">
+      <h4 id="pinTitle" class="mb-1">Введите PIN</h4>
+      <div id="pinSubtitle" class="text-muted mb-3">Для доступа к приложению</div>
+
+      <div id="pinError" class="text-danger small mb-2" style="display:none;"></div>
+
+      <form id="pinForm" class="vstack gap-2" autocomplete="off">
+        <input id="pinInput1"
+               class="form-control form-control-lg text-center"
+               inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               placeholder="PIN" />
+
+        <input id="pinInput2"
+               class="form-control form-control-lg text-center"
+               inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               placeholder="Повторите PIN"
+               style="display:none;" />
+
+        <button id="pinSubmitBtn" class="btn btn-primary btn-lg rounded-4 mt-2" type="submit">
+          Войти
+        </button>
+      </form>
+
+      <div class="text-muted small mt-3">
+        Если забудете PIN — очистите данные сайта в Safari.
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
