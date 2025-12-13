@@ -310,6 +310,44 @@
     return byCat;
   }
 
+  function topCategoriesForMonth(purchases, ym, limit = 3) {
+    const map = new Map();
+    for (const p of purchases) {
+      if (p.month_key !== ym) continue;
+      const cat = (p.category || "Без категории").trim();
+      if (!cat) continue;
+      const cur = map.get(cat) || { cat, count: 0, sum: 0 };
+      cur.count += 1;
+      cur.sum += Number(p.amount || 0);
+      map.set(cat, cur);
+    }
+    return Array.from(map.values())
+      .sort((a, b) => (b.count - a.count) || (b.sum - a.sum))
+      .slice(0, limit)
+      .map(x => x.cat);
+  }
+
+  function topSourcesForMonth(purchases, ym, limit = 2) {
+    const map = new Map();
+    for (const p of purchases) {
+      if (p.month_key !== ym) continue;
+      const src = (p.source || "").trim();
+      if (!src) continue;
+      const cur = map.get(src) || { src, count: 0, sum: 0 };
+      cur.count += 1;
+      cur.sum += Number(p.amount || 0);
+      map.set(src, cur);
+    }
+    return Array.from(map.values())
+      .sort((a, b) => (b.count - a.count) || (b.sum - a.sum))
+      .slice(0, limit)
+      .map(x => x.src);
+  }
+
+  function formatMoney1(val) {
+    return Number(val || 0).toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+
   // ---------- delete modal ----------
   function initDeleteModal(onAfterDelete) {
     const modalEl = document.getElementById("deleteConfirmModal");
@@ -383,7 +421,11 @@
     addChart = new Chart(canvas, {
       type: "doughnut",
       data: { labels, datasets: [{ label: "Сумма", data: sums }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } }
+      }
     });
   }
 
@@ -399,6 +441,11 @@
 
     const titleEl = document.getElementById("titleInput");
     const categoryEl = document.getElementById("categoryInput");
+    const categoryListEl = document.getElementById("categorySuggestions");
+
+    const sourceEl = document.getElementById("sourceInput");
+    const sourceListEl = document.getElementById("sourceSuggestions");
+
     const amountEl = document.getElementById("amountInput");
     const commentEl = document.getElementById("commentInput");
     const dateEl = document.getElementById("dateInput");
@@ -406,7 +453,31 @@
     const submitBtn = document.getElementById("submitBtn");
     const cancelBtn = document.getElementById("cancelEditBtn");
 
+    if (!titleEl || !categoryEl || !amountEl || !dateEl) return;
+
     await ensureState();
+
+    function ensureDefaultDate() {
+      if (dateEl && !dateEl.value) dateEl.value = todayISO();
+    }
+
+    function refreshCategorySuggestions() {
+      if (!categoryListEl) return;
+      const ymCur = ymFromDate(new Date());
+      const top = topCategoriesForMonth(state.purchases || [], ymCur, 3);
+      categoryListEl.innerHTML = top.map(c => `<option value="${escapeHtml(c)}"></option>`).join("");
+    }
+
+    function refreshSourceSuggestions() {
+      if (!sourceListEl) return;
+      const ymCur = ymFromDate(new Date());
+      const top = topSourcesForMonth(state.purchases || [], ymCur, 2);
+      sourceListEl.innerHTML = top.map(s => `<option value="${escapeHtml(s)}"></option>`).join("");
+    }
+
+    ensureDefaultDate();
+    refreshCategorySuggestions();
+    refreshSourceSuggestions();
 
     const ym = pickAddChartMonth(state.purchases);
     renderAddChartFromPurchases(state.purchases, ym);
@@ -427,9 +498,10 @@
 
       titleEl.value = p.title || "";
       categoryEl.value = p.category || "";
-      amountEl.value = String(Number(p.amount || 0).toFixed(1));
-      commentEl.value = p.comment || "";
-      dateEl.value = p.purchased_at || "";
+      if (sourceEl) sourceEl.value = p.source || "";
+      amountEl.value = String(Number(p.amount || 0).toFixed(2));
+      if (commentEl) commentEl.value = p.comment || "";
+      dateEl.value = p.purchased_at || todayISO();
 
       if (submitBtn) submitBtn.textContent = "Внести изменения";
       if (cancelBtn) cancelBtn.classList.remove("d-none");
@@ -439,6 +511,7 @@
       if (pageTitle) pageTitle.textContent = "Внесение расходов";
       if (idEl) idEl.value = "";
       form.reset();
+      ensureDefaultDate();
       if (submitBtn) submitBtn.textContent = "Внести данные";
       if (cancelBtn) cancelBtn.classList.add("d-none");
 
@@ -462,8 +535,9 @@
 
       const title = (titleEl.value || "").trim();
       const category = (categoryEl.value || "").trim();
+      const source = (sourceEl?.value || "").trim();
       const amountRaw = (amountEl.value || "").trim().replace(",", ".");
-      const comment = (commentEl.value || "").trim();
+      const comment = (commentEl?.value || "").trim();
       const purchased_at = (dateEl.value || "").trim() || todayISO();
 
       if (!title || !category || !amountRaw) {
@@ -489,6 +563,7 @@
           }
           old.title = title;
           old.category = category;
+          old.source = source;
           old.amount = amount;
           old.comment = comment;
           old.purchased_at = purchased_at;
@@ -496,23 +571,26 @@
 
           await updatePurchase(old);
           await reloadState();
-
           showAlert(alertHost, "Изменения сохранены.", "success");
 
           const n = nextEl?.value || "";
           if (n) { location.href = n; return; }
           exitEditMode();
         } else {
-          await addPurchase({ title, category, amount, comment, purchased_at, month_key });
+          await addPurchase({ title, category, source, amount, comment, purchased_at, month_key });
           await reloadState();
           showAlert(alertHost, "Покупка добавлена.", "success");
           form.reset();
+          ensureDefaultDate();
         }
       } catch (err) {
         console.error(err);
         showAlert(alertHost, "Не удалось сохранить покупку (IndexedDB).", "danger");
         return;
       }
+
+      refreshCategorySuggestions();
+      refreshSourceSuggestions();
 
       const newYm = pickAddChartMonth(state.purchases);
       renderAddChartFromPurchases(state.purchases, newYm);
@@ -522,7 +600,7 @@
   // ---------- EXPENSES ----------
   function buildPurchaseCardHTML(p, nextUrl) {
     const faceDate = dateLabel(p.purchased_at);
-    const sum = Number(p.amount || 0).toFixed(1);
+    const sum = Number(p.amount || 0).toFixed(2);
 
     const editUrl = new URL("./index.html", location.href);
     editUrl.searchParams.set("edit", String(p.id));
@@ -542,7 +620,8 @@
 
   <div id="p${p.id}" class="collapse">
     <div class="px-3 pb-3 text-muted small">
-      <div><b>Категория:</b> ${escapeHtml(p.category)}</div>
+      <div><b>Категория:</b> ${escapeHtml(p.category || "")}</div>
+      ${p.source ? `<div><b>Источник:</b> ${escapeHtml(p.source)}</div>` : ``}
       ${p.comment ? `<div><b>Комментарий:</b> ${escapeHtml(p.comment)}</div>` : ``}
 
       <div class="d-flex gap-2 mt-3">
@@ -573,7 +652,6 @@
     const titleEl = document.getElementById("expensesMonthTitle");
     if (!monthSelect || !sortSelect || !form || !listEl || !noDataEl || !contentEl || !titleEl) return;
 
-    // ✅ вот тут место для мобильного сокращения текста (а НЕ в initAddPage)
     if (window.matchMedia("(max-width: 576px)").matches) {
       const opts = sortSelect.querySelectorAll("option");
       if (opts[0]) opts[0].textContent = "Новые";
@@ -640,6 +718,7 @@
 
   // ---------- REPORTS ----------
   let reportChart = null;
+  let reportChartMode = "bar"; // bar <-> doughnut
 
   function filterByPeriod(purchases, period, monthKey) {
     const today = new Date();
@@ -662,6 +741,8 @@
     const summaryTbody = document.getElementById("summaryTbody");
     const detailsAccordion = document.getElementById("detailsAccordion");
     const chartCanvas = document.getElementById("reportChart");
+    const totalTitleEl = document.getElementById("reportsTotalTitle");
+
     if (!noData || !content || !summaryTbody || !detailsAccordion || !chartCanvas) return;
 
     const months = getAvailableMonthsFromPurchases(purchases);
@@ -678,8 +759,6 @@
     const summary = groupSummaryForPurchases(filtered);
     const details = detailsByCategory(filtered);
 
-    // --- Total spent title ---
-    const totalTitleEl = document.getElementById("reportsTotalTitle");
     const totalSum = filtered.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
     let label = "";
@@ -689,10 +768,8 @@
     else label = "все время";
 
     if (totalTitleEl) {
-      totalTitleEl.textContent = `Потрачено за ${label}: ${totalSum.toFixed(1)} ₽`;
+      totalTitleEl.textContent = `Потрачено за ${label}: ${formatMoney1(totalSum)} ₽`;
     }
-
-
 
     summaryTbody.innerHTML = summary.map(row => `
       <tr>
@@ -703,7 +780,7 @@
           </button>
         </td>
         <td class="text-center">${row.count}</td>
-        <td class="text-end" style="padding-right:30px;">${row.sum.toFixed(1)}</td>
+        <td class="text-end" style="padding-right:30px;">${row.sum.toFixed(2)}</td>
       </tr>
     `).join("");
 
@@ -734,11 +811,12 @@
               <div class="fw-semibold">${escapeHtml(p.title)}</div>
               <div class="text-muted small mt-1">
                 <div><b>Дата:</b> ${escapeHtml(dateLabel(p.purchased_at))}</div>
+                ${p.source ? `<div><b>Источник:</b> ${escapeHtml(p.source)}</div>` : ``}
                 ${p.comment ? `<div><b>Комментарий:</b> ${escapeHtml(p.comment)}</div>` : ``}
               </div>
             </div>
             <div class="badge rounded-pill report-item-badge align-self-center">
-              ${Number(p.amount).toFixed(1)}
+              ${Number(p.amount).toFixed(2)}
             </div>
           </div>
         </div>
@@ -754,7 +832,7 @@
           ${escapeHtml(cat)}
           <span class="text-muted small">(Количество покупок - ${items.length})</span>
         </div>
-        <div class="badge rounded-pill report-sum-badge">${sum.toFixed(1)}</div>
+        <div class="badge rounded-pill report-sum-badge">${sum.toFixed(2)}</div>
       </div>
     </button>
   </h2>
@@ -766,23 +844,54 @@
 </div>`;
     }).join("");
 
-    // chart (не ломает страницу, если Chart не загрузился)
     if (typeof Chart === "undefined") return;
 
     const labels = summary.map(x => x.category);
     const sums = summary.map(x => x.sum);
+    const counts = summary.map(x => x.count);
+
     if (reportChart) reportChart.destroy();
-    reportChart = new Chart(chartCanvas, {
-      type: "bar",
-      data: { labels, datasets: [{ label: "Сумма", data: sums }] },
-      options: { responsive: true }
-    });
+
+    // ВАЖНО: отключаем легенду, чтобы над графиком не было "Сумма"
+    const commonPlugins = {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          afterLabel: (ctx) => {
+            const i = ctx.dataIndex;
+            return `Количество покупок: ${counts[i]}`;
+          }
+        }
+      }
+    };
+
+    if (reportChartMode === "doughnut") {
+      reportChart = new Chart(chartCanvas, {
+        type: "doughnut",
+        data: { labels, datasets: [{ label: "Сумма", data: sums }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: commonPlugins
+        }
+      });
+    } else {
+      reportChart = new Chart(chartCanvas, {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Сумма", data: sums }] },
+        options: {
+          responsive: true,
+          plugins: commonPlugins
+        }
+      });
+    }
   }
 
   async function initReportsPage() {
     const periodSelect = document.getElementById("periodSelect");
     const monthSelect = document.getElementById("monthSelect");
     const chartCanvas = document.getElementById("reportChart");
+    const toggleBtn = document.getElementById("toggleChartBtn");
     if (!periodSelect || !monthSelect || !chartCanvas) return;
 
     await ensureState();
@@ -813,11 +922,17 @@
       renderReportsUI(purchases, period, monthSelect.value);
     }
 
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        reportChartMode = (reportChartMode === "bar") ? "doughnut" : "bar";
+        render();
+      });
+    }
+
     periodSelect.addEventListener("change", render);
     monthSelect.addEventListener("change", render);
 
     render();
-    initDeleteModal(() => render());
   }
 
   // ---------- boot ----------

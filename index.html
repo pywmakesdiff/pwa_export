@@ -48,12 +48,22 @@
 
             <div>
               <label class="form-label">Категория покупки</label>
-              <input id="categoryInput" class="form-control" placeholder="Пример - Транспорт" required>
+              <input id="categoryInput" class="form-control" placeholder="Напр. Еда" list="categorySuggestions" required>
+              <datalist id="categorySuggestions"></datalist>
             </div>
 
             <div>
               <label class="form-label">Сумма покупки</label>
               <input id="amountInput" class="form-control" placeholder="Пример - 980" required>
+            </div>
+
+            <div>
+              <label class="form-label">Источник расходов</label>
+              <input id="sourceInput"
+                    class="form-control"
+                    placeholder="Пример - Сбербанк"
+                    list="sourceSuggestions">
+              <datalist id="sourceSuggestions"></datalist>
             </div>
 
             <div>
@@ -63,9 +73,9 @@
 
             <div>
               <label class="form-label">Дата покупки</label>
-              <input id="dateInput" type="date" class="form-control">
-              <div class="form-text">Если оставить пустым — подставится текущая дата.</div>
+              <input id="dateInput" type="date" class="form-control" required>
             </div>
+
 
             <div class="d-flex gap-2 justify-content-center">
               <button id="submitBtn" class="btn btn-primary btn-lg rounded-4" type="submit">Внести данные</button>
