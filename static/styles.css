@@ -284,3 +284,118 @@ body.pin-locked nav{
   border-radius: 1rem;
   box-shadow: 0 6px 18px rgba(11,27,43,.12);
 }
+
+
+
+/* =========================
+   DESKTOP ONLY (>= 992px)
+   Mobile is untouched
+   ========================= */
+@media (min-width: 992px){
+
+  /* 1) Фон всего сайта (кроме шапки) делаем одним цветом, без градиента */
+  body{
+    background: var(--bg2) !important;
+  }
+
+  /* -------------------------
+     INDEX (Внесение расходов)
+     ------------------------- */
+
+  /* “масштабируем” визуально: крупнее шрифты + поля + кнопки + паддинги */
+  .page-add #appContent{
+    max-width: 1280px;              /* чтобы не было пусто по бокам */
+  }
+
+  .page-add .card-body{
+    padding: 3rem !important;
+  }
+
+  .page-add .form-label,
+  .page-add label{
+    font-size: 1.05rem;
+  }
+
+  .page-add .form-control,
+  .page-add .form-select{
+    font-size: 1.08rem;
+    padding: .85rem 1.05rem;
+  }
+
+  .page-add .btn{
+    font-size: 1.05rem;
+    padding: .8rem 1.6rem;
+  }
+
+  /* если диаграмма/карточка диаграммы где-то ограничена max-width — снимаем ограничение */
+  .page-add .chart-card{
+    max-width: none !important;
+  }
+  .page-add .chart-box-sm{
+    height: 260px;
+  }
+
+  /* -------------------------
+     EXPENSES (Расходы)
+     ------------------------- */
+
+  /* В одну строку: 2 селекта + “Показать” + “Мои категории” */
+  .page-expenses #expensesFilters{
+    flex-wrap: nowrap !important;
+    gap: .75rem !important;
+    align-items: center !important;
+  }
+
+  .page-expenses .expenses-selects{
+    flex-direction: row !important;
+    flex: 1 1 auto;
+  }
+
+  /* кнопка “Мои категории” — как “Показать”, не на всю ширину на десктопе */
+  .page-expenses #myCategoriesBtn{
+    width: auto !important;
+    min-width: 180px;
+    white-space: nowrap;
+  }
+
+  /* Поиск: ширина как у блока “Покупки …” (то есть как у левой колонки) */
+  .page-expenses #expensesSearchRow{
+    display: grid;
+    grid-template-columns: 1fr 340px;   /* слева поиск/покупки, справа подсказка */
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .page-expenses #expensesSearchWrap{
+    min-width: 0;
+  }
+
+  .page-expenses #expensesHintWrap{
+    min-width: 0;
+  }
+
+  /* -------------------------
+     REPORTS (Отчетность)
+     ------------------------- */
+
+  /* Селекты делаем “длиннее” на десктопе */
+  .page-reports .report-select{
+    min-width: 280px !important;
+    max-width: none !important;
+  }
+
+  /* Чуть увеличим ширины колонок, чтобы не было пустоты */
+  .page-reports #reportsContent > .col-lg-5{
+    width: 50% !important;      /* вместо 5/12 */
+    flex: 0 0 50% !important;
+  }
+  .page-reports #reportsContent > .col-lg-7{
+    width: 50% !important;      /* вместо 7/12 */
+    flex: 0 0 50% !important;
+  }
+
+  /* Поднимаем “Детализация…” кверху — убираем лишние внутренние отступы/маргины если есть */
+  .page-reports #reportsContent .col-lg-7 .card{
+    margin-top: 0 !important;
+  }
+}

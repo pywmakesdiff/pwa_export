@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Сайт — финансы</title>
+  <title>FinTrack</title>
 
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="theme-color" content="#a2d1ff">
@@ -13,10 +13,10 @@
   <link href="./static/vendor/bootstrap.min.css" rel="stylesheet">
   <link href="./static/styles.css" rel="stylesheet">
 </head>
-<body>
+<body class="page-expenses">
 <nav class="navbar navbar-custom border-bottom">
   <div class="container d-flex align-items-center">
-    <a class="navbar-brand fw-semibold d-none d-sm-inline" href="./index.html">Сайт — финансы</a>
+    <a class="navbar-brand fw-semibold d-none d-sm-inline" href="./index.html">FinTrack</a>
 
     <div class="navbar-nav gap-2 flex-row flex-nowrap ms-auto">
       <a class="nav-link" href="./index.html">Внесение расходов</a>
@@ -29,31 +29,31 @@
 <main id="appContent" class="container my-4">
 
   <div class="mb-3">
-
-    <form id="expensesFilters" class="expenses-filters">
+    <!-- Верхняя панель: фильтры + кнопка "Мои категории" (в одну строку на десктопе) -->
+    <div class="d-flex flex-column flex-lg-row gap-2 align-items-lg-center">
+      <form id="expensesFilters" class="expenses-filters flex-grow-1">
         <div class="expenses-selects">
-            <select id="expensesMonthSelect" class="form-select form-select-sm">
-                <option selected disabled>Месяц</option>
-            </select>
+          <select id="expensesMonthSelect" class="form-select form-select-sm">
+            <option selected disabled>Месяц</option>
+          </select>
 
-            <select id="expensesSortSelect" class="form-select form-select-sm sort-select">
-                <option value="new" selected>Сначала новые</option>
-                <option value="old">Сначала старые</option>
-                <option value="cat">По категориям</option>
-            </select>
+          <select id="expensesSortSelect" class="form-select form-select-sm sort-select">
+            <option value="new" selected>Сначала новые</option>
+            <option value="old">Сначала старые</option>
+            <option value="cat">По категориям</option>
+          </select>
         </div>
 
         <button id="expensesShowBtn" class="btn btn-primary rounded-4 px-3" type="submit">
-            Показать
+          Показать
         </button>
-    </form>
-    <a class="btn btn-primary rounded-4 w-100 mt-2" href="./categories.html">Мои категории</a>
-    <input id="expensesSearchInput"
-       class="form-control rounded-4 mt-2"
-       type="search"
-       placeholder="Поиск покупки"
-       autocomplete="off">
+      </form>
 
+      <!-- на мобилке будет шириной 100% (w-100), на десктопе CSS переопределяет на auto -->
+      <a id="myCategoriesBtn" class="btn btn-primary rounded-4 px-3 w-100" href="./categories.html">
+        Мои категории
+      </a>
+    </div>
   </div>
 
   <div id="expensesNoData" class="alert alert-info rounded-4 d-none">
@@ -61,7 +61,16 @@
   </div>
 
   <div class="row g-4" id="expensesContent">
+    <!-- Левая колонка: поиск + покупки -->
     <div class="col-lg-7">
+      <div id="expensesSearchWrap" class="mb-3">
+        <input id="expensesSearchInput"
+               class="form-control rounded-4"
+               type="search"
+               placeholder="Поиск покупки"
+               autocomplete="off">
+      </div>
+
       <div class="card shadow-sm rounded-4">
         <div class="card-body p-4">
           <div class="text-muted mb-2">
@@ -73,7 +82,8 @@
       </div>
     </div>
 
-    <div class="col-lg-5">
+    <!-- Правая колонка: подсказка -->
+    <div class="col-lg-5" id="expensesHintWrap">
       <div class="card shadow-sm rounded-4">
         <div class="card-body p-4">
           <h6 class="mb-2">Подсказка</h6>
@@ -85,7 +95,9 @@
       </div>
     </div>
   </div>
+
 </main>
+
 
 <script src="./static/vendor/bootstrap.bundle.min.js"></script>
 <script src="./static/vendor/chart.umd.min.js"></script>

@@ -1,6 +1,6 @@
 {
-  "name": "Сайт — финансы",
-  "short_name": "Финансы",
+  "name": "FinTrack",
+  "short_name": "FinTrack",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
