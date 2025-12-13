@@ -424,6 +424,8 @@
 
     const labels = summary.map(x => x.category);
     const sums = summary.map(x => x.sum);
+    
+
 
     if (addChart) addChart.destroy();
     addChart = new Chart(canvas, {
@@ -768,6 +770,13 @@
     }
   }
 
+  const REPORT_COLORS = [
+    "#36a2eb", "#ff6384", "#ff9f40", "#ffcd56",
+    "#4bc0c0", "#9966ff", "#c9cbcf", "#4dc9f6", "#00ad07", "#ff11e0", "#a5ffcd"
+  ];
+
+
+
   function renderReportsUI(purchases, period, monthKey) {
     const noData = document.getElementById("reportsNoData");
     const content = document.getElementById("reportsContent");
@@ -883,6 +892,8 @@
     const labels = summary.map(x => x.category);
     const sums = summary.map(x => x.sum);
     const counts = summary.map(x => x.count);
+    const colors = labels.map((_, i) => REPORT_COLORS[i % REPORT_COLORS.length]);
+
 
     if (reportChart) reportChart.destroy();
 
@@ -936,9 +947,17 @@
       // BAR: делаем легенду как список категорий и клики по ней скрывают/показывают столбцы
       reportChart = new Chart(chartCanvas, {
         type: "bar",
-        data: { labels, datasets: [{ label: "Сумма", data: sums }] },
+        data: { labels, datasets: [{ label: "Сумма", data: sums, backgroundColor: colors}] },
+
         options: {
           responsive: true,
+
+          scales: {
+            x: {
+              ticks: { display: false } // скрываем подписи категорий под столбиками
+            }
+          },
+
           plugins: {
             legend: {
               display: true,
@@ -973,10 +992,17 @@
             },
             tooltip: tooltipCfg
           },
+
           // клик по самому столбцу тоже работает
           onClick: (evt, elements, chart) => {
-            const points = chart.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+            const points = chart.getElementsAtEventForMode(
+              evt,
+              "nearest",
+              { intersect: true },
+              true
+            );
             if (!points.length) return;
+
             const idx = points[0].index;
             chart.toggleDataVisibility(idx);
             chart.update();
@@ -985,6 +1011,11 @@
             setReportsTitle(label, visibleSumFromChart(chart));
           }
         }
+
+
+
+
+
       });
 
       applyHiddenCatsToChart(reportChart);
