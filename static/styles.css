@@ -237,16 +237,11 @@ body.pin-locked nav{
     border-radius: 1rem !important;
   }
 }
-/* Reports chart: button in legend place */
-.chart-wrap{
-  position: relative;
-}
 
-/* <-- ВОТ ТУТ потом меняешь положение/размер, если захочешь */
+
+
 .chart-toggle{
-  position: absolute;
-  top: 10px;              /* сделай 6–14px под вкус */
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
+  display: block;
+  margin: 10px auto 0;     /* центрируем */
+  padding: 8px 14px;
 }

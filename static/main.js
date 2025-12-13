@@ -719,6 +719,7 @@
   // ---------- REPORTS ----------
   let reportChart = null;
   let reportChartMode = "bar"; // bar <-> doughnut
+  let reportHiddenCats = new Set(); // скрытые категории (по названию)
 
   function filterByPeriod(purchases, period, monthKey) {
     const today = new Date();
@@ -733,6 +734,30 @@
     const startISO = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}-${String(start.getDate()).padStart(2,"0")}`;
     const endISO = todayISO();
     return purchases.filter(p => (p.purchased_at >= startISO && p.purchased_at <= endISO));
+  }
+
+  function visibleSumFromChart(chart) {
+    const data = chart?.data?.datasets?.[0]?.data || [];
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (chart.getDataVisibility(i)) sum += Number(data[i] || 0);
+    }
+    return sum;
+  }
+
+  function syncHiddenCatsFromChart(chart) {
+    const labels = chart?.data?.labels || [];
+    reportHiddenCats = new Set(
+      labels.filter((_, i) => !chart.getDataVisibility(i))
+    );
+  }
+
+  function applyHiddenCatsToChart(chart) {
+    const labels = chart?.data?.labels || [];
+    for (let i = 0; i < labels.length; i++) {
+      const isHidden = reportHiddenCats.has(labels[i]);
+      chart.setDataVisibility(i, !isHidden);
+    }
   }
 
   function renderReportsUI(purchases, period, monthKey) {
@@ -759,17 +784,11 @@
     const summary = groupSummaryForPurchases(filtered);
     const details = detailsByCategory(filtered);
 
-    const totalSum = filtered.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
     let label = "";
     if (period === "month") label = monthLabel(monthKey);
     else if (period === "3m") label = "3 месяца";
     else if (period === "year") label = "год";
     else label = "все время";
-
-    if (totalTitleEl) {
-      totalTitleEl.textContent = `Потрачено за ${label}: ${formatMoney1(totalSum)} ₽`;
-    }
 
     summaryTbody.innerHTML = summary.map(row => `
       <tr>
@@ -852,15 +871,19 @@
 
     if (reportChart) reportChart.destroy();
 
-    // ВАЖНО: отключаем легенду, чтобы над графиком не было "Сумма"
-    const commonPlugins = {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          afterLabel: (ctx) => {
-            const i = ctx.dataIndex;
-            return `Количество покупок: ${counts[i]}`;
-          }
+    function updateTitleFromChart(chart) {
+      const visibleSum = visibleSumFromChart(chart);
+      if (totalTitleEl) {
+        totalTitleEl.textContent = `Потрачено за ${label}: ${formatMoney1(visibleSum)} ₽`;
+      }
+    }
+
+    // общий tooltip
+    const tooltipCfg = {
+      callbacks: {
+        afterLabel: (ctx) => {
+          const i = ctx.dataIndex;
+          return `Количество покупок: ${counts[i] ?? ""}`;
         }
       }
     };
@@ -872,18 +895,88 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: commonPlugins
+          plugins: {
+            legend: {
+              display: true,
+              position: "bottom",
+              onClick: (e, item, legend) => {
+                const chart = legend.chart;
+                const idx = item.index;
+                chart.toggleDataVisibility(idx);
+                chart.update();
+
+                syncHiddenCatsFromChart(chart);
+                updateTitleFromChart(chart);
+              }
+            },
+            tooltip: tooltipCfg
+          }
         }
       });
+
+      // применяем скрытые категории после смены вида
+      applyHiddenCatsToChart(reportChart);
+      reportChart.update();
+      updateTitleFromChart(reportChart);
+
     } else {
+      // BAR: делаем легенду как список категорий и клики по ней скрывают/показывают столбцы
       reportChart = new Chart(chartCanvas, {
         type: "bar",
         data: { labels, datasets: [{ label: "Сумма", data: sums }] },
         options: {
           responsive: true,
-          plugins: commonPlugins
+          plugins: {
+            legend: {
+              display: true,
+              position: "bottom",
+              labels: {
+                generateLabels: (chart) => {
+                  const data = chart.data;
+                  if (!data.labels || !data.labels.length) return [];
+                  const meta = chart.getDatasetMeta(0);
+                  return data.labels.map((lbl, i) => {
+                    const style = meta.controller.getStyle(i);
+                    return {
+                      text: String(lbl),
+                      fillStyle: style.backgroundColor,
+                      strokeStyle: style.borderColor,
+                      lineWidth: style.borderWidth,
+                      hidden: !chart.getDataVisibility(i),
+                      index: i
+                    };
+                  });
+                }
+              },
+              onClick: (e, item, legend) => {
+                const chart = legend.chart;
+                const idx = item.index;
+                chart.toggleDataVisibility(idx);
+                chart.update();
+
+                syncHiddenCatsFromChart(chart);
+                updateTitleFromChart(chart);
+              }
+            },
+            tooltip: tooltipCfg
+          },
+          // клик по самому столбцу тоже работает
+          onClick: (evt, elements, chart) => {
+            const points = chart.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+            if (!points.length) return;
+            const idx = points[0].index;
+            chart.toggleDataVisibility(idx);
+            chart.update();
+
+            syncHiddenCatsFromChart(chart);
+            updateTitleFromChart(chart);
+          }
         }
       });
+
+      applyHiddenCatsToChart(reportChart);
+      reportChart.update();
+      updateTitleFromChart(reportChart);
     }
   }
 
@@ -906,7 +999,7 @@
       monthSelect.style.display = (periodSelect.value === "month") ? "block" : "none";
     }
 
-    function render() {
+    function render(resetHidden = true) {
       const purchases = state.purchases || [];
       const months = getAvailableMonthsFromPurchases(purchases);
 
@@ -918,6 +1011,8 @@
 
       setMonthSelectVisible();
 
+      if (resetHidden) reportHiddenCats = new Set(); // при смене периода/месяца показываем всё заново
+
       const period = periodSelect.value || "month";
       renderReportsUI(purchases, period, monthSelect.value);
     }
@@ -925,14 +1020,14 @@
     if (toggleBtn) {
       toggleBtn.addEventListener("click", () => {
         reportChartMode = (reportChartMode === "bar") ? "doughnut" : "bar";
-        render();
+        render(false); // сохраняем скрытые категории при смене вида
       });
     }
 
-    periodSelect.addEventListener("change", render);
-    monthSelect.addEventListener("change", render);
+    periodSelect.addEventListener("change", () => render(true));
+    monthSelect.addEventListener("change", () => render(true));
 
-    render();
+    render(true);
   }
 
   // ---------- boot ----------

@@ -51,21 +51,15 @@
     <div class="col-lg-5">
       <div class="card shadow-sm rounded-4">
         <div class="card-body p-4">
-          <h6 class="mb-3" id="reportsTotalTitle">Потрачено: 0.0 ₽</h6>
+          <h6 class="mb-3" id="reportsTotalTitle">Потрачено — 0,0 ₽</h6>
 
-          <div class="chart-wrap">
-            <button type="button"
-                    id="toggleChartBtn"
-                    class="btn btn-outline-primary btn-sm rounded-pill chart-toggle">
-              Сменить вид
-            </button>
+          <canvas id="reportChart" height="220"></canvas>
 
-            <canvas id="reportChart" height="220"></canvas>
-          </div>
-
-
-
-
+          <button type="button"
+                  id="toggleChartBtn"
+                  class="btn btn-outline-primary btn-sm rounded-pill chart-toggle mt-2">
+            Сменить вид
+          </button>
 
         </div>
       </div>
