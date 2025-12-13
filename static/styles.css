@@ -399,3 +399,15 @@ body.pin-locked nav{
     margin-top: 0 !important;
   }
 }
+
+/* REPORTS desktop only: селекты длиннее и в колонку, мобилку не трогаем */
+@media (min-width: 992px){
+  .reports-controls{
+    width: 100%;
+    max-width: 100%;
+  }
+  .reports-controls .form-select{
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
