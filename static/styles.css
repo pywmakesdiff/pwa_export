@@ -276,3 +276,11 @@ body.pin-locked nav{
 @media (max-width: 420px){
   .my-categories-btn{ width: 100%; }
 }
+
+/* Categories page: элементы списка как "карточки покупок" */
+#categoriesList > *{
+  background: rgba(255,255,255,.85);
+  border: 1px solid rgba(255,255,255,.55);
+  border-radius: 1rem;
+  box-shadow: 0 6px 18px rgba(11,27,43,.12);
+}

@@ -208,6 +208,13 @@
     }, 2500);
   }
 
+  function catKey(cat) {
+    // детерминированный и уникальный key для DOM id (без коллизий)
+    return encodeURIComponent(String(cat)).replace(/%/g, "_");
+  }
+
+
+
   // ---------- IndexedDB ----------
   const DB_NAME = "finance_pwa_db";
   const DB_VERSION = 1;
@@ -427,6 +434,17 @@
     if (!el) return;
     const prefix = label ? `Потрачено за ${label}: ` : "Потрачено: ";
     el.textContent = `${prefix}${formatMoney1(sum)} ₽`;
+  }
+
+  function catKey(cat) {
+    // Детерминированный короткий hash (FNV-1a) — чтобы id всегда были уникальными
+    const s = String(cat ?? "");
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return "cat_" + (h >>> 0).toString(16) + "_" + s.length;
   }
 
   // ---------- delete modal ----------
@@ -839,6 +857,16 @@
     const noDataEl = document.getElementById("expensesNoData");
     const contentEl = document.getElementById("expensesContent");
     const titleEl = document.getElementById("expensesMonthTitle");
+    const searchEl = document.getElementById("expensesSearchInput");
+    let searchQuery = "";
+
+    if (searchEl) {
+      searchEl.addEventListener("input", () => {
+        searchQuery = (searchEl.value || "").trim().toLowerCase();
+        render();
+      });
+    }
+    
     if (!monthSelect || !sortSelect || !form || !listEl || !noDataEl || !contentEl || !titleEl) return;
 
     await ensureState();
@@ -880,6 +908,10 @@
       titleEl.textContent = monthLabel(selectedMonth);
 
       let items = purchases.filter((p) => p.month_key === selectedMonth);
+      if (searchQuery) {
+        items = items.filter(p => (p.title || "").toLowerCase().startsWith(searchQuery));
+      }
+
       items.sort((a, b) => {
         const da = a.purchased_at || "";
         const db = b.purchased_at || "";
@@ -1006,7 +1038,7 @@
     summaryTbody.querySelectorAll("[data-open-cat]").forEach(btn => {
       btn.addEventListener("click", () => {
         const cat = btn.getAttribute("data-open-cat");
-        const safe = String(cat).replace(/[^a-zA-Z0-9_-]/g, "_");
+        const safe = catKey(cat);
         const el = document.getElementById(`acc-${safe}`);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
         const collapse = document.getElementById(`col-${safe}`);
@@ -1019,7 +1051,7 @@
 
     const cats = Object.keys(details);
     detailsAccordion.innerHTML = cats.map((cat) => {
-      const safe = String(cat).replace(/[^a-zA-Z0-9_-]/g, "_");
+      const safe = catKey(cat);
       const items = details[cat] || [];
       const sum = Number(sumByCat[cat] ?? 0);
 
