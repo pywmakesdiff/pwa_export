@@ -30,12 +30,12 @@
 
   function bufToHex(buffer) {
     const bytes = new Uint8Array(buffer);
-    return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+    return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
   function randomHex(bytesLen = 16) {
     const bytes = new Uint8Array(bytesLen);
     crypto.getRandomValues(bytes);
-    return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+    return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
   async function sha256Hex(text) {
     const enc = new TextEncoder().encode(text);
@@ -46,7 +46,9 @@
     try {
       const raw = localStorage.getItem(PIN_STORAGE_KEY);
       return raw ? JSON.parse(raw) : null; // {salt, hash}
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
   function setStoredPin(obj) {
     localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(obj));
@@ -84,7 +86,10 @@
     if (!overlay || !form || !pin1 || !pin2 || !title || !subtitle || !btn) return;
 
     const stored = getStoredPin();
-    if (stored && isUnlockedSession()) { setUnlocked(); return; }
+    if (stored && isUnlockedSession()) {
+      setUnlocked();
+      return;
+    }
 
     document.body.classList.add("pin-locked");
     overlay.setAttribute("aria-hidden", "false");
@@ -102,40 +107,85 @@
       pin2.style.display = "none";
     }
 
-    pin1.value = ""; pin2.value = "";
+    pin1.value = "";
+    pin2.value = "";
     clearPinError();
     pin1.focus();
 
     return new Promise((resolve) => {
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        clearPinError();
+      form.addEventListener(
+        "submit",
+        async (e) => {
+          e.preventDefault();
+          clearPinError();
 
-        const v1 = (pin1.value || "").trim();
-        const v2 = (pin2.value || "").trim();
+          const v1 = (pin1.value || "").trim();
+          const v2 = (pin2.value || "").trim();
 
-        if (!/^\d{4,6}$/.test(v1)) { showPinError("PIN должен быть 4–6 цифр."); return; }
+          if (!/^\d{4,6}$/.test(v1)) {
+            showPinError("PIN должен быть 4–6 цифр.");
+            return;
+          }
 
-        if (isSetup) {
-          if (v1 !== v2) { showPinError("PIN не совпадает. Повторите."); return; }
-          const salt = randomHex(16);
-          const hash = await sha256Hex(salt + v1);
-          setStoredPin({ salt, hash });
-          setUnlocked(); resolve(); return;
-        }
+          if (isSetup) {
+            if (v1 !== v2) {
+              showPinError("PIN не совпадает. Повторите.");
+              return;
+            }
+            const salt = randomHex(16);
+            const hash = await sha256Hex(salt + v1);
+            setStoredPin({ salt, hash });
+            setUnlocked();
+            resolve();
+            return;
+          }
 
-        const cur = getStoredPin();
-        const hash = await sha256Hex(cur.salt + v1);
-        if (hash !== cur.hash) { showPinError("Неверный PIN."); pin1.value=""; pin1.focus(); return; }
+          const cur = getStoredPin();
+          const hash = await sha256Hex(cur.salt + v1);
+          if (hash !== cur.hash) {
+            showPinError("Неверный PIN.");
+            pin1.value = "";
+            pin1.focus();
+            return;
+          }
 
-        setUnlocked(); resolve();
-      }, { once: true });
+          setUnlocked();
+          resolve();
+        },
+        { once: true }
+      );
     });
   }
 
   // ---------- dates/labels ----------
-  const MONTHS_NOM = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-  const MONTHS_GEN = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
+  const MONTHS_NOM = [
+    "Январь",
+    "Февраль",
+    "Март",
+    "Апрель",
+    "Май",
+    "Июнь",
+    "Июль",
+    "Август",
+    "Сентябрь",
+    "Октябрь",
+    "Ноябрь",
+    "Декабрь",
+  ];
+  const MONTHS_GEN = [
+    "Января",
+    "Февраля",
+    "Марта",
+    "Апреля",
+    "Мая",
+    "Июня",
+    "Июля",
+    "Августа",
+    "Сентября",
+    "Октября",
+    "Ноября",
+    "Декабря",
+  ];
 
   function monthLabel(ym) {
     if (!ym || ym.length !== 7) return String(ym || "");
@@ -179,7 +229,9 @@
   function showAlert(hostEl, message, type = "success") {
     if (!hostEl) return;
     hostEl.innerHTML = `<div class="alert alert-${type} rounded-4 mb-3">${escapeHtml(message)}</div>`;
-    setTimeout(() => { hostEl.innerHTML = ""; }, 2500);
+    setTimeout(() => {
+      hostEl.innerHTML = "";
+    }, 2500);
   }
 
   // ---------- IndexedDB ----------
@@ -301,7 +353,9 @@
 
   function detailsByCategory(purchases) {
     const byCat = {};
-    const sorted = [...purchases].sort((a, b) => (b.purchased_at || "").localeCompare(a.purchased_at || ""));
+    const sorted = [...purchases].sort((a, b) =>
+      (b.purchased_at || "").localeCompare(a.purchased_at || "")
+    );
     for (const p of sorted) {
       const cat = p.category || "Без категории";
       if (!byCat[cat]) byCat[cat] = [];
@@ -310,51 +364,19 @@
     return byCat;
   }
 
-  function topCategoriesForMonth(purchases, ym, limit = 3) {
-    const map = new Map();
-    for (const p of purchases) {
-      if (p.month_key !== ym) continue;
-      const cat = (p.category || "Без категории").trim();
-      if (!cat) continue;
-      const cur = map.get(cat) || { cat, count: 0, sum: 0 };
-      cur.count += 1;
-      cur.sum += Number(p.amount || 0);
-      map.set(cat, cur);
-    }
-    return Array.from(map.values())
-      .sort((a, b) => (b.count - a.count) || (b.sum - a.sum))
-      .slice(0, limit)
-      .map(x => x.cat);
-  }
-
-  function topSourcesForMonth(purchases, ym, limit = 2) {
-    const map = new Map();
-    for (const p of purchases) {
-      if (p.month_key !== ym) continue;
-      const src = (p.source || "").trim();
-      if (!src) continue;
-      const cur = map.get(src) || { src, count: 0, sum: 0 };
-      cur.count += 1;
-      cur.sum += Number(p.amount || 0);
-      map.set(src, cur);
-    }
-    return Array.from(map.values())
-      .sort((a, b) => (b.count - a.count) || (b.sum - a.sum))
-      .slice(0, limit)
-      .map(x => x.src);
-  }
-
   function formatMoney1(val) {
-    return Number(val || 0).toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    return Number(val || 0).toLocaleString("ru-RU", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
   }
 
-  function setReportsTitle(label, sum){
+  function setReportsTitle(label, sum) {
     const el = document.getElementById("reportsTotalTitle");
     if (!el) return;
     const prefix = label ? `Потрачено за ${label}: ` : "Потрачено: ";
     el.textContent = `${prefix}${formatMoney1(sum)} ₽`;
   }
-
 
   // ---------- delete modal ----------
   function initDeleteModal(onAfterDelete) {
@@ -408,7 +430,7 @@
   }
 
   function purchasesForMonth(purchases, ym) {
-    return purchases.filter(p => p.month_key === ym);
+    return purchases.filter((p) => p.month_key === ym);
   }
 
   function renderAddChartFromPurchases(purchases, ym) {
@@ -422,10 +444,8 @@
     const monthPurchases = purchasesForMonth(purchases, ym);
     const summary = groupSummaryForPurchases(monthPurchases);
 
-    const labels = summary.map(x => x.category);
-    const sums = summary.map(x => x.sum);
-    
-
+    const labels = summary.map((x) => x.category);
+    const sums = summary.map((x) => x.sum);
 
     if (addChart) addChart.destroy();
     addChart = new Chart(canvas, {
@@ -434,8 +454,8 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: "bottom" } }
-      }
+        plugins: { legend: { position: "bottom" } },
+      },
     });
   }
 
@@ -451,10 +471,12 @@
 
     const titleEl = document.getElementById("titleInput");
     const categoryEl = document.getElementById("categoryInput");
-    const categoryListEl = document.getElementById("categorySuggestions");
+    const categoryListEl =
+      document.getElementById("categorySuggestions") || document.getElementById("categoryDatalist");
 
     const sourceEl = document.getElementById("sourceInput");
-    const sourceListEl = document.getElementById("sourceSuggestions");
+    const sourceListEl =
+      document.getElementById("sourceSuggestions") || document.getElementById("sourceDatalist");
 
     const amountEl = document.getElementById("amountInput");
     const commentEl = document.getElementById("commentInput");
@@ -471,24 +493,38 @@
       if (dateEl && !dateEl.value) dateEl.value = todayISO();
     }
 
-    function refreshCategorySuggestions() {
-      if (!categoryListEl) return;
-      const ymCur = ymFromDate(new Date());
-      const top = topCategoriesForMonth(state.purchases || [], ymCur, 3);
-      categoryListEl.innerHTML = top.map(c => `<option value="${escapeHtml(c)}"></option>`).join("");
+    function uniqueSorted(values) {
+      const set = new Set((values || []).filter((v) => v && String(v).trim()));
+      return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), "ru"));
     }
 
-    function refreshSourceSuggestions() {
-      if (!sourceListEl) return;
-      const ymCur = ymFromDate(new Date());
-      const top = topSourcesForMonth(state.purchases || [], ymCur, 2);
-      sourceListEl.innerHTML = top.map(s => `<option value="${escapeHtml(s)}"></option>`).join("");
+    function fillDatalist(dl, values) {
+      if (!dl) return;
+      dl.innerHTML = values.map((v) => `<option value="${escapeHtml(v)}"></option>`).join("");
+    }
+
+    // ✅ НОВОЕ: показываем ВСЕ категории/источники, которые уже были в выбранном месяце
+    function updateMonthSuggestions() {
+      ensureDefaultDate();
+      const picked = (dateEl.value || "").trim() || todayISO();
+      const ym = monthKeyFromISO(picked);
+
+      const monthItems = (state.purchases || []).filter((p) => p.month_key === ym);
+
+      const cats = uniqueSorted(monthItems.map((p) => p.category));
+      const srcs = uniqueSorted(monthItems.map((p) => p.source));
+
+      fillDatalist(categoryListEl, cats);
+      fillDatalist(sourceListEl, srcs);
     }
 
     ensureDefaultDate();
-    refreshCategorySuggestions();
-    refreshSourceSuggestions();
+    updateMonthSuggestions();
 
+    // при смене даты — пересчитываем подсказки
+    dateEl.addEventListener("change", updateMonthSuggestions);
+
+    // chart
     const ym = pickAddChartMonth(state.purchases);
     renderAddChartFromPurchases(state.purchases, ym);
 
@@ -513,6 +549,8 @@
       if (commentEl) commentEl.value = p.comment || "";
       dateEl.value = p.purchased_at || todayISO();
 
+      updateMonthSuggestions();
+
       if (submitBtn) submitBtn.textContent = "Внести изменения";
       if (cancelBtn) cancelBtn.classList.remove("d-none");
     }
@@ -522,6 +560,8 @@
       if (idEl) idEl.value = "";
       form.reset();
       ensureDefaultDate();
+      updateMonthSuggestions();
+
       if (submitBtn) submitBtn.textContent = "Внести данные";
       if (cancelBtn) cancelBtn.classList.add("d-none");
 
@@ -583,24 +623,28 @@
           await reloadState();
           showAlert(alertHost, "Изменения сохранены.", "success");
 
+          updateMonthSuggestions();
+
           const n = nextEl?.value || "";
-          if (n) { location.href = n; return; }
+          if (n) {
+            location.href = n;
+            return;
+          }
           exitEditMode();
         } else {
           await addPurchase({ title, category, source, amount, comment, purchased_at, month_key });
           await reloadState();
           showAlert(alertHost, "Покупка добавлена.", "success");
+
           form.reset();
           ensureDefaultDate();
+          updateMonthSuggestions();
         }
       } catch (err) {
         console.error(err);
         showAlert(alertHost, "Не удалось сохранить покупку (IndexedDB).", "danger");
         return;
       }
-
-      refreshCategorySuggestions();
-      refreshSourceSuggestions();
 
       const newYm = pickAddChartMonth(state.purchases);
       renderAddChartFromPurchases(state.purchases, newYm);
@@ -612,25 +656,30 @@
     const faceDate = dateLabel(p.purchased_at);
     const sum = Number(p.amount || 0).toFixed(2);
 
+    // уникальный id, чтобы точно не было конфликтов
+    const collapseId = `p_${String(p.id)}_${String(p.purchased_at || "").replace(/[^0-9]/g, "")}`;
+
     const editUrl = new URL("./index.html", location.href);
     editUrl.searchParams.set("edit", String(p.id));
     editUrl.searchParams.set("next", nextUrl);
 
     return `
 <div class="card purchase-card shadow-sm rounded-4 mb-2">
-  <button class="btn text-start p-3" type="button" data-bs-toggle="collapse" data-bs-target="#p${p.id}">
+  <button class="btn text-start p-3" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
     <div class="d-flex justify-content-between align-items-start gap-3">
       <div class="flex-grow-1">
-        <div class="fw-semibold">${escapeHtml(p.title)}</div>
+        <div class="fw-semibold">
+          ${escapeHtml(p.title)}
+          <span class="text-muted fw-normal"> — ${escapeHtml(p.category || "")}</span>
+        </div>
         <div class="text-muted small mt-1">${escapeHtml(faceDate)}</div>
       </div>
       <div class="badge rounded-pill price-badge align-self-center">${sum}</div>
     </div>
   </button>
 
-  <div id="p${p.id}" class="collapse">
+  <div id="${collapseId}" class="collapse">
     <div class="px-3 pb-3 text-muted small">
-      <div><b>Категория:</b> ${escapeHtml(p.category || "")}</div>
       ${p.source ? `<div><b>Источник:</b> ${escapeHtml(p.source)}</div>` : ``}
       ${p.comment ? `<div><b>Комментарий:</b> ${escapeHtml(p.comment)}</div>` : ``}
 
@@ -662,12 +711,6 @@
     const titleEl = document.getElementById("expensesMonthTitle");
     if (!monthSelect || !sortSelect || !form || !listEl || !noDataEl || !contentEl || !titleEl) return;
 
-    if (window.matchMedia("(max-width: 576px)").matches) {
-      const opts = sortSelect.querySelectorAll("option");
-      if (opts[0]) opts[0].textContent = "Сначала новые";
-      if (opts[1]) opts[1].textContent = "Сначала старые";
-    }
-
     await ensureState();
 
     function render() {
@@ -692,25 +735,32 @@
       const qMonth = url.searchParams.get("month");
       const qSort = url.searchParams.get("sort");
       const currentYm = ymFromDate(new Date());
-      const selectedMonth = (qMonth && months.includes(qMonth)) ? qMonth : (months.includes(currentYm) ? currentYm : months[0]);
-      const sortMode = (qSort === "old" || qSort === "new") ? qSort : (sortSelect.value || "new");
+      const selectedMonth =
+        qMonth && months.includes(qMonth) ? qMonth : months.includes(currentYm) ? currentYm : months[0];
+      const sortMode = qSort === "old" || qSort === "new" ? qSort : sortSelect.value || "new";
 
-      monthSelect.innerHTML = months.map(m => `
+      monthSelect.innerHTML = months
+        .map(
+          (m) => `
         <option value="${m}" ${m === selectedMonth ? "selected" : ""}>${escapeHtml(monthLabel(m))}</option>
-      `).join("");
+      `
+        )
+        .join("");
 
       sortSelect.value = sortMode;
       titleEl.textContent = monthLabel(selectedMonth);
 
-      let items = purchases.filter(p => p.month_key === selectedMonth);
+      let items = purchases.filter((p) => p.month_key === selectedMonth);
       items.sort((a, b) => {
         const da = a.purchased_at || "";
         const db = b.purchased_at || "";
-        return (sortMode === "old") ? da.localeCompare(db) : db.localeCompare(da);
+        return sortMode === "old" ? da.localeCompare(db) : db.localeCompare(da);
       });
 
-      const nextUrl = `${location.pathname}?month=${encodeURIComponent(selectedMonth)}&sort=${encodeURIComponent(sortMode)}`;
-      listEl.innerHTML = items.map(p => buildPurchaseCardHTML(p, nextUrl)).join("");
+      const nextUrl = `${location.pathname}?month=${encodeURIComponent(selectedMonth)}&sort=${encodeURIComponent(
+        sortMode
+      )}`;
+      listEl.innerHTML = items.map((p) => buildPurchaseCardHTML(p, nextUrl)).join("");
     }
 
     form.addEventListener("submit", (e) => {
@@ -737,13 +787,15 @@
 
     if (period === "month") {
       if (!monthKey) return [];
-      return purchases.filter(p => p.month_key === monthKey);
+      return purchases.filter((p) => p.month_key === monthKey);
     }
 
-    let start = (period === "3m") ? addMonths(today, -3) : addMonths(today, -12);
-    const startISO = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}-${String(start.getDate()).padStart(2,"0")}`;
+    let start = period === "3m" ? addMonths(today, -3) : addMonths(today, -12);
+    const startISO = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(
+      start.getDate()
+    ).padStart(2, "0")}`;
     const endISO = todayISO();
-    return purchases.filter(p => (p.purchased_at >= startISO && p.purchased_at <= endISO));
+    return purchases.filter((p) => p.purchased_at >= startISO && p.purchased_at <= endISO);
   }
 
   function visibleSumFromChart(chart) {
@@ -757,9 +809,7 @@
 
   function syncHiddenCatsFromChart(chart) {
     const labels = chart?.data?.labels || [];
-    reportHiddenCats = new Set(
-      labels.filter((_, i) => !chart.getDataVisibility(i))
-    );
+    reportHiddenCats = new Set(labels.filter((_, i) => !chart.getDataVisibility(i)));
   }
 
   function applyHiddenCatsToChart(chart) {
@@ -771,11 +821,18 @@
   }
 
   const REPORT_COLORS = [
-    "#36a2eb", "#ff6384", "#ff9f40", "#ffcd56",
-    "#4bc0c0", "#9966ff", "#c9cbcf", "#4dc9f6", "#00ad07", "#ff11e0", "#a5ffcd"
+    "#36a2eb",
+    "#ff6384",
+    "#ff9f40",
+    "#ffcd56",
+    "#4bc0c0",
+    "#9966ff",
+    "#c9cbcf",
+    "#4dc9f6",
+    "#00ad07",
+    "#ff11e0",
+    "#a5ffcd",
   ];
-
-
 
   function renderReportsUI(purchases, period, monthKey) {
     const noData = document.getElementById("reportsNoData");
@@ -808,13 +865,15 @@
     else label = "все время";
 
     const totalAll = summary.reduce((a, r) => a + Number(r.sum || 0), 0);
-    const totalVisibleBySet = summary.reduce((a, r) => a + (reportHiddenCats.has(r.category) ? 0 : Number(r.sum || 0)), 0);
-
-    // ставим заголовок сразу (чтобы не было 0,0 ₽ при первом открытии)
+    const totalVisibleBySet = summary.reduce(
+      (a, r) => a + (reportHiddenCats.has(r.category) ? 0 : Number(r.sum || 0)),
+      0
+    );
     setReportsTitle(label, reportHiddenCats.size ? totalVisibleBySet : totalAll);
 
-
-    summaryTbody.innerHTML = summary.map(row => `
+    summaryTbody.innerHTML = summary
+      .map(
+        (row) => `
       <tr>
         <td>
           <button class="btn btn-link p-0 text-decoration-none fw-semibold summary-cat-link"
@@ -825,9 +884,11 @@
         <td class="text-center">${row.count}</td>
         <td class="text-end" style="padding-right:30px;">${row.sum.toFixed(2)}</td>
       </tr>
-    `).join("");
+    `
+      )
+      .join("");
 
-    summaryTbody.querySelectorAll("[data-open-cat]").forEach(btn => {
+    summaryTbody.querySelectorAll("[data-open-cat]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const cat = btn.getAttribute("data-open-cat");
         const safe = String(cat).replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -842,12 +903,15 @@
     for (const s of summary) sumByCat[s.category] = s.sum;
 
     const cats = Object.keys(details);
-    detailsAccordion.innerHTML = cats.map((cat) => {
-      const safe = String(cat).replace(/[^a-zA-Z0-9_-]/g, "_");
-      const items = details[cat] || [];
-      const sum = Number(sumByCat[cat] ?? 0);
+    detailsAccordion.innerHTML = cats
+      .map((cat) => {
+        const safe = String(cat).replace(/[^a-zA-Z0-9_-]/g, "_");
+        const items = details[cat] || [];
+        const sum = Number(sumByCat[cat] ?? 0);
 
-      const itemHtml = items.map(p => `
+        const itemHtml = items
+          .map(
+            (p) => `
         <div class="border rounded-4 p-3 mb-2">
           <div class="d-flex justify-content-between align-items-center gap-3">
             <div class="flex-grow-1">
@@ -863,9 +927,11 @@
             </div>
           </div>
         </div>
-      `).join("");
+      `
+          )
+          .join("");
 
-      return `
+        return `
 <div class="accordion-item rounded-4 overflow-hidden mb-2" id="acc-${safe}">
   <h2 class="accordion-header">
     <button class="accordion-button collapsed" type="button"
@@ -885,15 +951,15 @@
     </div>
   </div>
 </div>`;
-    }).join("");
+      })
+      .join("");
 
     if (typeof Chart === "undefined") return;
 
-    const labels = summary.map(x => x.category);
-    const sums = summary.map(x => x.sum);
-    const counts = summary.map(x => x.count);
+    const labels = summary.map((x) => x.category);
+    const sums = summary.map((x) => x.sum);
+    const counts = summary.map((x) => x.count);
     const colors = labels.map((_, i) => REPORT_COLORS[i % REPORT_COLORS.length]);
-
 
     if (reportChart) reportChart.destroy();
 
@@ -904,23 +970,25 @@
       }
     }
 
-    // общий tooltip
     const tooltipCfg = {
       callbacks: {
         afterLabel: (ctx) => {
           const i = ctx.dataIndex;
           return `Количество покупок: ${counts[i] ?? ""}`;
-        }
-      }
+        },
+      },
     };
 
     if (reportChartMode === "doughnut") {
       reportChart = new Chart(chartCanvas, {
         type: "doughnut",
-        data: { labels, datasets: [{ label: "Сумма", data: sums }] },
+        data: {
+          labels,
+          datasets: [{ label: "Сумма", data: sums, backgroundColor: colors }],
+        },
         options: {
           responsive: true,
-          maintainAspectRatio: true, // FIX iOS "улёт вниз"
+          maintainAspectRatio: true, // iOS fix
           plugins: {
             legend: {
               display: true,
@@ -930,34 +998,30 @@
                 const idx = item.index;
                 chart.toggleDataVisibility(idx);
                 chart.update();
-
                 syncHiddenCatsFromChart(chart);
-                setReportsTitle(label, visibleSumFromChart(chart)); // пересчёт суммы
-              }
+                setReportsTitle(label, visibleSumFromChart(chart));
+              },
             },
-            tooltip: tooltipCfg
-          }
-        }
+            tooltip: tooltipCfg,
+          },
+        },
       });
 
       applyHiddenCatsToChart(reportChart);
       reportChart.update();
-      setReportsTitle(label, visibleSumFromChart(reportChart)); // пересчёт суммы при первом рендере
+      updateTitleFromChart(reportChart);
     } else {
-      // BAR: делаем легенду как список категорий и клики по ней скрывают/показывают столбцы
       reportChart = new Chart(chartCanvas, {
         type: "bar",
-        data: { labels, datasets: [{ label: "Сумма", data: sums, backgroundColor: colors}] },
-
+        data: {
+          labels,
+          datasets: [{ label: "Сумма", data: sums, backgroundColor: colors }],
+        },
         options: {
           responsive: true,
-
           scales: {
-            x: {
-              ticks: { display: false } // скрываем подписи категорий под столбиками
-            }
+            x: { ticks: { display: false } }, // скрываем подписи категорий под столбиками
           },
-
           plugins: {
             legend: {
               display: true,
@@ -975,47 +1039,32 @@
                       strokeStyle: style.borderColor,
                       lineWidth: style.borderWidth,
                       hidden: !chart.getDataVisibility(i),
-                      index: i
+                      index: i,
                     };
                   });
-                }
+                },
               },
               onClick: (e, item, legend) => {
                 const chart = legend.chart;
                 const idx = item.index;
                 chart.toggleDataVisibility(idx);
                 chart.update();
-
                 syncHiddenCatsFromChart(chart);
                 setReportsTitle(label, visibleSumFromChart(chart));
-              }
+              },
             },
-            tooltip: tooltipCfg
+            tooltip: tooltipCfg,
           },
-
-          // клик по самому столбцу тоже работает
           onClick: (evt, elements, chart) => {
-            const points = chart.getElementsAtEventForMode(
-              evt,
-              "nearest",
-              { intersect: true },
-              true
-            );
+            const points = chart.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
             if (!points.length) return;
-
             const idx = points[0].index;
             chart.toggleDataVisibility(idx);
             chart.update();
-
             syncHiddenCatsFromChart(chart);
             setReportsTitle(label, visibleSumFromChart(chart));
-          }
-        }
-
-
-
-
-
+          },
+        },
       });
 
       applyHiddenCatsToChart(reportChart);
@@ -1034,13 +1083,13 @@
     await ensureState();
 
     function fillMonths(months, selected) {
-      monthSelect.innerHTML = months.map(m => `
-        <option value="${m}" ${m === selected ? "selected" : ""}>${escapeHtml(monthLabel(m))}</option>
-      `).join("");
+      monthSelect.innerHTML = months
+        .map((m) => `<option value="${m}" ${m === selected ? "selected" : ""}>${escapeHtml(monthLabel(m))}</option>`)
+        .join("");
     }
 
     function setMonthSelectVisible() {
-      monthSelect.style.display = (periodSelect.value === "month") ? "block" : "none";
+      monthSelect.style.display = periodSelect.value === "month" ? "block" : "none";
     }
 
     function render(resetHidden = true) {
@@ -1048,14 +1097,14 @@
       const months = getAvailableMonthsFromPurchases(purchases);
 
       const currentYm = ymFromDate(new Date());
-      const selectedMonth = (months.includes(currentYm) ? currentYm : (months[0] || currentYm));
+      const selectedMonth = months.includes(currentYm) ? currentYm : months[0] || currentYm;
 
       if (!monthSelect.value || !months.includes(monthSelect.value)) fillMonths(months, selectedMonth);
       else fillMonths(months, monthSelect.value);
 
       setMonthSelectVisible();
 
-      if (resetHidden) reportHiddenCats = new Set(); // при смене периода/месяца показываем всё заново
+      if (resetHidden) reportHiddenCats = new Set(); // при смене периода/месяца показываем всё
 
       const period = periodSelect.value || "month";
       renderReportsUI(purchases, period, monthSelect.value);
@@ -1063,7 +1112,7 @@
 
     if (toggleBtn) {
       toggleBtn.addEventListener("click", () => {
-        reportChartMode = (reportChartMode === "bar") ? "doughnut" : "bar";
+        reportChartMode = reportChartMode === "bar" ? "doughnut" : "bar";
         render(false); // сохраняем скрытые категории при смене вида
       });
     }
